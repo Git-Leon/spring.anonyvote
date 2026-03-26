@@ -1,0 +1,56 @@
+name: CI / scheduled-monitor
+
+on:
+  schedule:
+    - cron: '*/15 * * * *' # every 15 minutes — change as needed
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'Optional URL to check. If not provided, uses the DEPLOY_URL secret.'
+        required: false
+        default: ''
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Make health script executable
+        run: chmod +x scripts/health_check.sh || true
+
+      - name: Run health check and collect logs
+        env:
+          DEPLOY_URL: ${{ secrets.DEPLOY_URL }}
+          API_TOKEN: ${{ secrets.DEPLOY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          # Determine URL: prefer workflow input, then secret
+          URL="${{ github.event.inputs.url }}"
+          if [ -z "$URL" ]; then
+            URL="${DEPLOY_URL:-}"
+          fi
+          if [ -z "$URL" ]; then
+            echo "No URL provided via workflow input or DEPLOY_URL secret. Exiting with failure." >&2
+            exit 1
+          fi
+          echo "Using URL: $URL"
+
+          # Run health check but don't fail the step immediately so we can upload logs
+          if ./scripts/health_check.sh "$URL"; then
+            RC=0
+          else
+            RC=$?
+          fi
+
+          echo "Health check exit code: $RC"
+          mkdir -p logs
+          echo "$RC" > logs/exit_code.txt
+          ls -la logs || true
+
+      - name: Upload logs artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: monitor-logs-${{ github.run_id }}
+          path: logs/**
