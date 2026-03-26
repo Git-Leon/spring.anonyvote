@@ -38,7 +38,9 @@ pull-requests and pushes to the `main`/`master` branches.
 You can add CI and Pages badges here after you push the repository to GitHub.
 Replace `<owner>` and `<repo>` with your GitHub account and repository name.
 
-CI (GitHub Actions) badge (replace owner/repo):
+<!-- Replace <owner>/<repo> with your GitHub repo to enable these badges -->
+[![CI](https://github.com/<owner>/<repo>/actions/workflows/ci.yml/badge.svg)](https://github.com/<owner>/<repo>/actions/workflows/ci.yml) 
+[![JaCoCo report](https://github.com/<owner>/<repo>/actions/workflows/publish-jacoco.yml/badge.svg)](https://<owner>.github.io/<repo>/)
 
 ```markdown
 [![CI](https://github.com/<owner>/<repo>/actions/workflows/ci.yml/badge.svg)](https://github.com/<owner>/<repo>/actions/workflows/ci.yml)
