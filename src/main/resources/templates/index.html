@@ -40,6 +40,7 @@
                 <button class="btn btn-primary" type="submit">Create Person</button>
             </div>
         </form>
+        <div id="create-result" class="form-row" aria-live="polite" style="margin-top:10px;color:var(--muted);"></div>
     </section>
 
     <section class="polls">
@@ -89,10 +90,20 @@
             data: personData,
             dataType: "json",
             success: function (response) {
-                alert(JSON.stringify(response));
+                // show created person inline instead of using alert
+                const target = document.getElementById('create-result');
+                if (response && response.id !== undefined) {
+                    target.innerText = `Created Person: id=${response.id} — ${response.firstName} ${response.lastName}`;
+                } else {
+                    target.innerText = 'Created person (response): ' + JSON.stringify(response);
+                }
+                // clear inputs for next create
+                document.getElementById('fname').value = '';
+                document.getElementById('lname').value = '';
             },
             error: function () {
-                alert('Error while request..');
+                const targetErr = document.getElementById('create-result');
+                targetErr.innerText = 'Error while creating person';
             }
         });
 
