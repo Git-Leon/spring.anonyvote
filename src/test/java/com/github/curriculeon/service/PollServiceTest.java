@@ -113,4 +113,15 @@ public class PollServiceTest {
 
         assertEquals(sample, out);
     }
+
+    @Test
+    public void createPoll_ignoresEmptyAndTrimsOptions() {
+        when(pollRepository.save(any(Poll.class))).thenAnswer(i -> i.getArguments()[0]);
+
+        Poll p = pollService.createPoll("Q?", Arrays.asList("  A  ", "", "   ", "B"));
+
+        assertEquals(2, p.getOptions().size());
+        assertEquals("A", p.getOptions().get(0).getText());
+        assertEquals("B", p.getOptions().get(1).getText());
+    }
 }

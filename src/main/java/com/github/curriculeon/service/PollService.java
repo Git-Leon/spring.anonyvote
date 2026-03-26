@@ -32,14 +32,22 @@ public class PollService {
 
     public Poll createPoll(String question, List<String> optionTexts) {
         if (optionTexts == null) throw new IllegalArgumentException("Options required");
-        if (optionTexts.size() < 2) throw new IllegalArgumentException("At least 2 options required");
-        if (optionTexts.size() > 6) throw new IllegalArgumentException("At most 6 options allowed");
+
+        // Trim and remove empty option entries (frontend allows empty optional option inputs)
+        List<String> texts = optionTexts.stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList());
+
+        if (texts.size() < 2) throw new IllegalArgumentException("At least 2 options required");
+        if (texts.size() > 6) throw new IllegalArgumentException("At most 6 options allowed");
 
         Instant now = Instant.now(clock);
         Instant resultsVisibleAt = now.plus(Duration.ofHours(24));
 
         Poll poll = new Poll(question, now, resultsVisibleAt);
-        for (String text : optionTexts) {
+        for (String text : texts) {
             poll.addOption(new PollOption(text));
         }
         return pollRepository.save(poll);
