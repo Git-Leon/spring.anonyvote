@@ -1,17 +1,28 @@
-# https://dev.to/lucasleon/heroku-is-not-free-anymore-so-ill-teach-you-how-to-deploy-your-spring-boot-services-to-rendercom-with-maven-and-docker-aca
-FROM openjdk:8-jdk-alpine as build
+# Build Stage
+FROM amazoncorretto:17-alpine as build
 WORKDIR /workspace/app
-COPY mvnw .
-COPY .mvn .mvn
+
+# Install Maven in the build stage
+RUN apk add --no-cache maven
+
+# Copy the required files to build the application
 COPY pom.xml .
-COPY src src
-RUN chmod +x ./mvnw
-RUN ./mvnw install -DskipTests
-RUN mkdir -p target/dependency && (cd target/dependency; jar -xf ../*.jar)
-FROM openjdk:8-jdk-alpine
-VOLUME /tmp
-ARG DEPENDENCY=/workspace/app/target/dependency
-COPY --from=build ${DEPENDENCY}/BOOT-INF/lib /app/lib
-COPY --from=build ${DEPENDENCY}/META-INF /app/META-INF
-COPY --from=build ${DEPENDENCY}/BOOT-INF/classes /app
-ENTRYPOINT ["java","-cp","app:app/lib/*","com.github.curriculeon.DemoApplication"]
+RUN mvn dependency:go-offline  # Cache dependencies first to speed up later builds
+
+COPY src/ src/
+RUN mvn package -DskipTests  # Build the JAR without running tests
+
+# Final Stage (Only copy the built JAR to the runtime image)
+FROM amazoncorretto:17-alpine
+
+WORKDIR /app
+
+# Copy the built JAR from the build stage
+COPY --from=build /workspace/app/target/*.jar /app/app.jar
+
+# Use a non-root user (optional, but good for security)
+RUN addgroup -S spring && adduser -S spring -G spring
+USER spring:spring
+
+# Run the application
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]
