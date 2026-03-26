@@ -25,7 +25,7 @@ public class IndexPageMvcTest {
     public void indexPage_containsCreateFormAndStylesheet() throws Exception {
         mockMvc.perform(get("/"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Create Person")))
+                .andExpect(content().string(containsString("Create a Poll")))
                 .andExpect(content().string(containsString("/style.css")));
     }
 }
