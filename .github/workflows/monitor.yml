@@ -47,6 +47,7 @@ jobs:
           echo "Health check exit code: $RC"
           mkdir -p logs
           echo "$RC" > logs/exit_code.txt
+          echo "$URL" > logs/url.txt
           ls -la logs || true
 
       - name: Upload logs artifact
@@ -54,3 +55,26 @@ jobs:
         with:
           name: monitor-logs-${{ github.run_id }}
           path: logs/**
+
+      - name: Create GitHub issue on failure
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            let rc = '0';
+            try {
+              rc = fs.readFileSync('logs/exit_code.txt','utf8').trim();
+            } catch (e) {
+              rc = '0';
+            }
+            if (rc !== '0') {
+              let url = 'unspecified';
+              try { url = fs.readFileSync('logs/url.txt','utf8').trim(); } catch(e) { /* ignore */ }
+              const title = `Monitor: health check failed (run ${process.env.GITHUB_RUN_ID})`;
+              const body = `Health check returned exit code **${rc}** for URL: **${url}**\n\n` +
+                `Run details: ${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}\n\n` +
+                `Artifact name: monitor-logs-${process.env.GITHUB_RUN_ID}`;
+              await github.rest.issues.create({owner: context.repo.owner, repo: context.repo.repo, title, body});
+            } else {
+              console.log('Health check passed; no issue created.');
+            }
