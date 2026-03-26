@@ -84,4 +84,24 @@ public class PollControllerIntegrationTest {
         ).andExpect(status().is3xxRedirection());
 
         // check repository has poll
-        List<Poll> polls = pollRepository.findAllByOrder
+        List<Poll> polls = pollRepository.findAllByOrderByCreatedAtDesc();
+        assertThat(polls).isNotEmpty();
+        Poll poll = polls.get(0);
+
+        // view the poll page and ensure only non-empty options are rendered
+        MvcResult r = mockMvc.perform(get("/poll/" + poll.getId()))
+                .andExpect(status().isOk())
+                .andReturn();
+        String content = r.getResponse().getContentAsString();
+
+        // The page should contain the provided option texts
+        assertThat(content).contains("Mickey Mouse");
+        assertThat(content).contains("Donald Duck");
+
+        // It should NOT contain an empty span as a result of blank option text
+        assertThat(content).doesNotContain("<span></span>");
+        // Also avoid spans that only contain whitespace
+        assertThat(content).doesNotContain("<span>   </span>");
+    }
+
+}
