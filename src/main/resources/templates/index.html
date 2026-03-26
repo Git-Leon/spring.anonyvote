@@ -12,6 +12,8 @@
 </head>
 <body>
 <main class="container">
+    <div id="flash" style="display:none; padding:8px; margin-bottom:12px; border-radius:4px;
+                background: #e6ffed; color: #084b22; box-shadow: 0 1px 2px rgba(0,0,0,0.04);"></div>
     <header class="site-header">
         <h1>Anonyvote — Demo</h1>
         <p class="lead">Create and browse anonymous polls (demo).</p>
@@ -229,12 +231,38 @@
                         var curPolls = document.querySelector('.polls');
                         if (newPolls && curPolls) {
                             curPolls.innerHTML = newPolls.innerHTML;
+                            // show a brief success message
+                            var flash = document.getElementById('flash');
+                            if (flash) {
+                                flash.textContent = 'Poll created.';
+                                flash.style.display = 'block';
+                                setTimeout(function () { flash.style.display = 'none'; }, 3500);
+                            }
                         } else {
                             // fallback: reload the page
                             window.location.reload();
                         }
-                        // hide the create section after success
+                        // hide the create section after success and reset form
                         if (section) section.style.display = 'none';
+                        // reset form inputs back to initial two empty options
+                        try {
+                            var q = form.querySelector('input[name="question"]');
+                            if (q) q.value = '';
+                            // remove all option rows except first two
+                            var rows = Array.prototype.slice.call(optionsContainer.querySelectorAll('.option-row'));
+                            rows.forEach(function (row, idx) {
+                                var inp = row.querySelector('input[name="option"]');
+                                if (idx < 2) {
+                                    if (inp) inp.value = '';
+                                } else {
+                                    row.parentNode.removeChild(row);
+                                }
+                            });
+                            refreshLabels();
+                            refreshRemoveButtons();
+                        } catch (err) {
+                            // ignore reset errors
+                        }
                     } catch (err) {
                         console.error(err);
                         window.location.reload();
