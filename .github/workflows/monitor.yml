@@ -1,5 +1,10 @@
 name: CI / scheduled-monitor
 
+# Grant the workflow explicit permissions so it can create/update issues and labels
+permissions:
+  contents: read
+  issues: write
+
 on:
   schedule:
     - cron: '*/15 * * * *' # every 15 minutes — change as needed
@@ -8,7 +13,9 @@ on:
       url:
         description: 'Optional URL to check. If not provided, uses the DEPLOY_URL secret.'
         required: false
-        default: ''
+        # Default to the public /health endpoint for the deployed app. Override when manually
+        # dispatching if you want to check a different URL.
+        default: 'https://spring.anonyvote.onrender.com/health'
 
 jobs:
   monitor:
@@ -67,68 +74,76 @@ jobs:
             let url = 'unspecified';
             try { url = fs.readFileSync('logs/url.txt','utf8').trim(); } catch(e) { /* ignore */ }
 
-            const pendingLabel = 'monitor-pending';
-            const failLabel = 'monitor-failure';
+            // Wrap all GitHub API interactions in a try/catch so the workflow
+            // does not fail if the GITHUB_TOKEN lacks permission in this repo.
+            try {
+              const pendingLabel = 'monitor-pending';
+              const failLabel = 'monitor-failure';
 
-            // Ensure labels exist
-            async function ensureLabel(name, color, desc) {
-              try { await github.rest.issues.getLabel({ owner: context.repo.owner, repo: context.repo.repo, name }); }
-              catch (e) { await github.rest.issues.createLabel({ owner: context.repo.owner, repo: context.repo.repo, name, color, description: desc }); }
-            }
-            await ensureLabel(pendingLabel, 'f9d0c4', 'Pending monitor failures (awaiting threshold)');
-            await ensureLabel(failLabel, 'b60205', 'Open monitor failures');
-
-            // Find open issues with either label that reference this URL
-            const issues = await github.rest.issues.listForRepo({ owner: context.repo.owner, repo: context.repo.repo, state: 'open', labels: `${pendingLabel},${failLabel}`, per_page: 100 });
-            const matched = (issues.data || []).filter(i => (i.body || '').includes(url));
-
-            if (rc === '0') {
-              // Success: close any matching pending or failure issues with recovery comment
-              for (const issue of matched) {
-                await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: issue.number, body: `Monitor recovered on run ${process.env.GITHUB_RUN_ID}. Closing issue.` });
-                await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: issue.number, state: 'closed' });
-                console.log(`Closed issue #${issue.number} for URL ${url}`);
+              // Ensure labels exist (create if missing)
+              async function ensureLabel(name, color, desc) {
+                try { await github.rest.issues.getLabel({ owner: context.repo.owner, repo: context.repo.repo, name }); }
+                catch (e) { try { await github.rest.issues.createLabel({ owner: context.repo.owner, repo: context.repo.repo, name, color, description: desc }); } catch (err) { console.log(`Could not create label ${name}: ${err.message}`); } }
               }
-              if (matched.length === 0) console.log(`No open monitor issues found for URL ${url}; nothing to close.`);
+              await ensureLabel(pendingLabel, 'f9d0c4', 'Pending monitor failures (awaiting threshold)');
+              await ensureLabel(failLabel, 'b60205', 'Open monitor failures');
+
+              // Find open issues with either label that reference this URL
+              const issues = await github.rest.issues.listForRepo({ owner: context.repo.owner, repo: context.repo.repo, state: 'open', labels: `${pendingLabel},${failLabel}`, per_page: 100 });
+              const matched = (issues.data || []).filter(i => (i.body || '').includes(url));
+
+              if (rc === '0') {
+                // Success: close any matching pending or failure issues with recovery comment
+                for (const issue of matched) {
+                  await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: issue.number, body: `Monitor recovered on run ${process.env.GITHUB_RUN_ID}. Closing issue.` });
+                  await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: issue.number, state: 'closed' });
+                  console.log(`Closed issue #${issue.number} for URL ${url}`);
+                }
+                if (matched.length === 0) console.log(`No open monitor issues found for URL ${url}; nothing to close.`);
+                return;
+              }
+
+              // Failure handling with pending threshold
+              if (matched.length > 0) {
+                // Prefer pending issues if any
+                const pending = matched.find(i => (i.labels || []).some(l => l.name === pendingLabel));
+                const failed = matched.find(i => (i.labels || []).some(l => l.name === failLabel));
+
+                if (failed) {
+                  // Already escalated
+                  await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: failed.number, body: `Monitor still failing on run ${process.env.GITHUB_RUN_ID}. Exit code: ${rc}.` });
+                  console.log(`Existing failure issue #${failed.number} updated.`);
+                  return;
+                }
+
+                if (pending) {
+                  // Read failure_count from body
+                  const m = (pending.body || '').match(/failure_count:\s*(\d+)/i);
+                  let count = m ? parseInt(m[1], 10) : 0;
+                  count += 1;
+                  if (count >= threshold) {
+                    // Escalate: replace label with failLabel
+                    await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: pending.number, body: `Threshold reached (${count}). Escalating to ${failLabel}.` });
+                    await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: pending.number, labels: [failLabel] });
+                    console.log(`Escalated pending issue #${pending.number} to ${failLabel}.`);
+                  } else {
+                    // Update body with new count and add a comment
+                    const newBody = `failure_count: ${count}\n\nOriginal URL: ${url}\n\nLast run: ${process.env.GITHUB_RUN_ID}`;
+                    await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: pending.number, body: newBody });
+                    await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: pending.number, body: `Monitor failed again (run ${process.env.GITHUB_RUN_ID}). Count=${count}/${threshold}.` });
+                    console.log(`Updated pending issue #${pending.number} with count ${count}.`);
+                  }
+                  return;
+                }
+              }
+
+              // No existing issue: create a pending issue with failure_count = 1
+              const title = `Monitor (pending): health check failing for ${url}`;
+              const body = `failure_count: 1\n\nOriginal URL: ${url}\n\nFirst failing run: ${process.env.GITHUB_RUN_ID}\n\nArtifact: monitor-logs-${process.env.GITHUB_RUN_ID}`;
+              const issue = await github.rest.issues.create({ owner: context.repo.owner, repo: context.repo.repo, title, body, labels: [pendingLabel] });
+              console.log(`Created pending issue #${issue.data.number} for URL ${url}`);
+            } catch (e) {
+              // Likely a permissions issue with GITHUB_TOKEN — log and continue without failing the job.
+              console.log(`Issue management skipped: ${e.message || e}`);
               return;
             }
-
-            // Failure handling with pending threshold
-            if (matched.length > 0) {
-              // Prefer pending issues if any
-              const pending = matched.find(i => (i.labels || []).some(l => l.name === pendingLabel));
-              const failed = matched.find(i => (i.labels || []).some(l => l.name === failLabel));
-
-              if (failed) {
-                // Already escalated
-                await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: failed.number, body: `Monitor still failing on run ${process.env.GITHUB_RUN_ID}. Exit code: ${rc}.` });
-                console.log(`Existing failure issue #${failed.number} updated.`);
-                return;
-              }
-
-              if (pending) {
-                // Read failure_count from body
-                const m = (pending.body || '').match(/failure_count:\s*(\d+)/i);
-                let count = m ? parseInt(m[1], 10) : 0;
-                count += 1;
-                if (count >= threshold) {
-                  // Escalate: replace label with failLabel
-                  await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: pending.number, body: `Threshold reached (${count}). Escalating to ${failLabel}.` });
-                  await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: pending.number, labels: [failLabel] });
-                  console.log(`Escalated pending issue #${pending.number} to ${failLabel}.`);
-                } else {
-                  // Update body with new count and add a comment
-                  const newBody = `failure_count: ${count}\n\nOriginal URL: ${url}\n\nLast run: ${process.env.GITHUB_RUN_ID}`;
-                  await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: pending.number, body: newBody });
-                  await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: pending.number, body: `Monitor failed again (run ${process.env.GITHUB_RUN_ID}). Count=${count}/${threshold}.` });
-                  console.log(`Updated pending issue #${pending.number} with count ${count}.`);
-                }
-                return;
-              }
-            }
-
-            // No existing issue: create a pending issue with failure_count = 1
-            const title = `Monitor (pending): health check failing for ${url}`;
-            const body = `failure_count: 1\n\nOriginal URL: ${url}\n\nFirst failing run: ${process.env.GITHUB_RUN_ID}\n\nArtifact: monitor-logs-${process.env.GITHUB_RUN_ID}`;
-            const issue = await github.rest.issues.create({ owner: context.repo.owner, repo: context.repo.repo, title, body, labels: [pendingLabel] });
-            console.log(`Created pending issue #${issue.data.number} for URL ${url}`);
