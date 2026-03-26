@@ -33,3 +33,22 @@ We've also added a GitHub Actions workflow (`.github/workflows/ci.yml`) which ru
 the Maven `verify` lifecycle and uploads the JaCoCo XML as a build artifact for
 pull-requests and pushes to the `main`/`master` branches.
 
+## Status (placeholders)
+
+You can add CI and Pages badges here after you push the repository to GitHub.
+Replace `<owner>` and `<repo>` with your GitHub account and repository name.
+
+CI (GitHub Actions) badge (replace owner/repo):
+
+```markdown
+[![CI](https://github.com/<owner>/<repo>/actions/workflows/ci.yml/badge.svg)](https://github.com/<owner>/<repo>/actions/workflows/ci.yml)
+```
+
+Pages (JaCoCo report) badge placeholder (the Pages site is available after the
+first successful deploy):
+
+```markdown
+[![JaCoCo report](https://github.com/<owner>/<repo>/actions/workflows/publish-jacoco.yml/badge.svg)](https://<owner>.github.io/<repo>/)
+```
+
+
