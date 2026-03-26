@@ -56,7 +56,7 @@ jobs:
           name: monitor-logs-${{ github.run_id }}
           path: logs/**
 
-      - name: Create GitHub issue on failure
+      - name: Create GitHub issue on failure (deduplicated)
         uses: actions/github-script@v6
         with:
           script: |
@@ -67,14 +67,36 @@ jobs:
             } catch (e) {
               rc = '0';
             }
-            if (rc !== '0') {
-              let url = 'unspecified';
-              try { url = fs.readFileSync('logs/url.txt','utf8').trim(); } catch(e) { /* ignore */ }
-              const title = `Monitor: health check failed (run ${process.env.GITHUB_RUN_ID})`;
-              const body = `Health check returned exit code **${rc}** for URL: **${url}**\n\n` +
-                `Run details: ${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}\n\n` +
-                `Artifact name: monitor-logs-${process.env.GITHUB_RUN_ID}`;
-              await github.rest.issues.create({owner: context.repo.owner, repo: context.repo.repo, title, body});
-            } else {
+            if (rc === '0') {
               console.log('Health check passed; no issue created.');
+              return;
             }
+
+            let url = 'unspecified';
+            try { url = fs.readFileSync('logs/url.txt','utf8').trim(); } catch(e) { /* ignore */ }
+
+            const labelName = 'monitor-failure';
+
+            // Ensure label exists (create if missing)
+            try {
+              await github.rest.issues.getLabel({ owner: context.repo.owner, repo: context.repo.repo, name: labelName });
+            } catch (e) {
+              // create label
+              await github.rest.issues.createLabel({ owner: context.repo.owner, repo: context.repo.repo, name: labelName, color: 'b60205', description: 'Open monitor failures' });
+            }
+
+            // Check for an existing open issue with the label that references this URL
+            const issues = await github.rest.issues.listForRepo({ owner: context.repo.owner, repo: context.repo.repo, state: 'open', labels: labelName, per_page: 100 });
+            const exists = (issues.data || []).some(i => (i.body || '').includes(url));
+            if (exists) {
+              console.log(`An open monitor issue already exists for URL: ${url}. Skipping creation.`);
+              return;
+            }
+
+            const title = `Monitor: health check failed for ${url}`;
+            const body = `Health check returned exit code **${rc}** for URL: **${url}**\n\n` +
+              `Run details: ${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}\n\n` +
+              `Artifact name: monitor-logs-${process.env.GITHUB_RUN_ID}`;
+
+            const issue = await github.rest.issues.create({ owner: context.repo.owner, repo: context.repo.repo, title, body, labels: [labelName] });
+            console.log(`Created issue #${issue.data.number}`);
