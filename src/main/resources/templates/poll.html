@@ -112,12 +112,17 @@
                 var container = document.createElement('div');
                 container.id = 'vote-message';
                 container.style.display = 'none';
+                // structure: text span, spinner, retry button
+                container.innerHTML = '<span id="vote-message-text"></span>' +
+                                      '<span id="vote-spinner" class="spinner" style="display:none"></span>' +
+                                      '<button id="vote-retry" type="button" class="retry-btn" style="display:none">Retry</button>';
                 form.parentNode.insertBefore(container, form);
             }
 
             form.addEventListener('submit', function(e){
                 e.preventDefault();
                 showMessage('Submitting your vote...', 'info');
+                showSpinner(true);
 
                 // disable submit buttons to prevent double submissions
                 var submitBtn = form.querySelector('button[type="submit"]');
@@ -125,6 +130,10 @@
 
                 var fd = new FormData(form);
                 var action = form.getAttribute('action');
+
+                // hide retry if visible
+                var retryBtn = document.getElementById('vote-retry');
+                if (retryBtn) retryBtn.style.display = 'none';
 
                 fetch(action, {
                     method: 'POST',
@@ -144,11 +153,32 @@
                 }).catch(function(err){
                     console.error('Vote/update failed', err);
                     showMessage('There was a problem recording your vote. Please try again.', 'error');
+                    // show retry button to allow user to re-submit
+                    var retryBtn = document.getElementById('vote-retry');
+                    if (retryBtn) retryBtn.style.display = 'inline-block';
                 }).finally(function(){
+                    showSpinner(false);
                     var submitBtn = form.querySelector('button[type="submit"]');
                     if (submitBtn) submitBtn.disabled = false;
                 });
             });
+            // wire retry button to re-submit the form
+            var retryBtn = document.getElementById('vote-retry');
+            if (retryBtn) {
+                retryBtn.addEventListener('click', function(){
+                    // hide retry and re-trigger submit
+                    retryBtn.style.display = 'none';
+                    // dispatch submit event which will be intercepted by our handler
+                    form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+                });
+            }
+        }
+        
+        // spinner helpers
+        function showSpinner(visible){
+            var s = document.getElementById('vote-spinner');
+            if (!s) return;
+            s.style.display = visible ? 'inline-block' : 'none';
         }
     })();
 </script>
