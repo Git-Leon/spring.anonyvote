@@ -53,4 +53,18 @@ first successful deploy):
 [![JaCoCo report](https://github.com/<owner>/<repo>/actions/workflows/publish-jacoco.yml/badge.svg)](https://<owner>.github.io/<repo>/)
 ```
 
+## JaCoCo coverage report (published)
+
+The JaCoCo HTML report has been published to GitHub Pages for this repository.
+
+- Public site: https://git-leon.github.io/spring.anonyvote/
+- Raw fallback (if the Pages URL returns 404 while GitHub finishes propagation):
+   https://raw.githubusercontent.com/Git-Leon/spring.anonyvote/gh-pages/index.html
+
+If the Pages site is not immediately available (HTTP 404), wait a minute and reload —
+GitHub sometimes needs a short moment to serve the new Pages content. The full
+HTML report is also available as a workflow artifact from the CI debug run if
+you need to download it manually.
+
+
 
