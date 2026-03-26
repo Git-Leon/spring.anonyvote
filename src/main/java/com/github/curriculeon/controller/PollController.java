@@ -136,4 +136,11 @@ public class PollController {
         return resp;
     }
 
+    @GetMapping("/health")
+    @ResponseBody
+    public ResponseEntity<String> health() {
+        // Simple public health endpoint for external monitors. Keep lightweight.
+        return ResponseEntity.ok("OK");
+    }
+
 }

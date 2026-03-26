@@ -16,7 +16,7 @@ Concise operational rules for automated agents and contributors. Keep changes gu
 
 - Automated agents (including Copilot/automation scripts) should create feature branches and open PRs for changes. Agents may propose and push changes on feature branches but must not merge to `master` or overwrite `master` without an explicit one-line approval from a repository owner (examples below).
 - One-line approvals the agent may act on (pick exactly one):
-  - `merge PR now` — merge the named PR into `master` (deploys).
+  - `continue` — merge the named PR into `master` (deploys).
   - `use .secrets.yml` — copy values from local `.secrets.yml` into the repository's GitHub Actions secrets (agent may do this only when explicitly authorized).
   - `enable monitoring` — allow the scheduled monitor workflow to run; requires the `DEPLOY_URL` secret to be present.
 
@@ -42,7 +42,7 @@ Concise operational rules for automated agents and contributors. Keep changes gu
 
 ## Examples of allowed agent commands (examples for owners)
 
-- To permit merging a PR now, post a single-line comment in the PR: `merge PR now`.
+- To permit merging a PR now, post a single-line comment in the PR: `continue`.
 - To permit copying secrets from a local file into GitHub Secrets, reply with: `use .secrets.yml`.
 
 ## Contact / follow-up
