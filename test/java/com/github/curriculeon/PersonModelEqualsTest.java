@@ -38,4 +38,40 @@ public class PersonModelEqualsTest {
         Assert.assertTrue(p.toString().contains("Eve"));
         Assert.assertTrue(p.toString().contains("Adams"));
     }
+
+    @Test
+    public void equalsNullAndDifferentClass() {
+        Person a = new Person(10L, "X", "Y");
+        Assert.assertNotEquals(a, null);
+        Assert.assertNotEquals(a, "not a person");
+    }
+
+    @Test
+    public void equalsOneIdNullOtherNonNullButSameFields() {
+        Person a = new Person(null, "Sam", "Lane");
+        Person b = new Person(20L, "Sam", "Lane");
+
+        // Should compare by fields when id isn't present on both
+        Assert.assertEquals(a, b);
+    }
+
+    @Test
+    public void equalsFieldNullCombinations() {
+        Person a = new Person(null, null, "Solo");
+        Person b = new Person(null, null, "Solo");
+        Assert.assertEquals(a, b);
+
+        Person c = new Person(null, "Alpha", null);
+        Person d = new Person(null, "Alpha", null);
+        Assert.assertEquals(c, d);
+
+        Person e = new Person(null, null, null);
+        Person f = new Person(null, null, null);
+        Assert.assertEquals(e, f);
+
+        // mismatches
+        Person g = new Person(null, "A", "B");
+        Person h = new Person(null, "A", "C");
+        Assert.assertNotEquals(g, h);
+    }
 }

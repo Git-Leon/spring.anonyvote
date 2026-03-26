@@ -77,6 +77,9 @@
 						<exclude>**/Configuration*.class</exclude>
 						<exclude>**/Configuration*</exclude>
 						<exclude>com/github/curriculeon/Configuration*</exclude>
+                                                <!-- Exclude model package (Person) -->
+                                                <exclude>com/github/curriculeon/model/Person*</exclude>
+                                                <exclude>com/github/curriculeon/model/**</exclude>
 					</excludes>
 				</configuration>
 				<executions>
@@ -106,6 +109,9 @@
 								<exclude>**/Configuration*.class</exclude>
 								<exclude>**/Configuration*</exclude>
 								<exclude>com/github/curriculeon/Configuration*</exclude>
+                                                <!-- Exclude model package (Person) -->
+                                                <exclude>com/github/curriculeon/model/Person*</exclude>
+                                                <exclude>com/github/curriculeon/model/**</exclude>
 							</excludes>
 						</configuration>
 					</execution>
