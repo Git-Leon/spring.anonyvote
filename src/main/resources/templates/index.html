@@ -193,6 +193,7 @@
 
         if (form) {
             form.addEventListener('submit', function (e) {
+                e.preventDefault();
                 var options = Array.prototype.slice.call(form.querySelectorAll('input[name="option"]'));
                 options.forEach(function (inp) {
                     if (typeof inp.value === 'string') inp.value = inp.value.trim();
@@ -202,6 +203,45 @@
                     if (!inp || inp.value === '') {
                         row.parentNode.removeChild(row);
                     }
+                });
+
+                // Build form data and submit via fetch so we can update the polls list inline.
+                var fd = new FormData(form);
+                // fetch will follow redirects but we care about a successful response
+                fetch(form.action || '/create', {
+                    method: 'POST',
+                    body: fd,
+                    credentials: 'same-origin'
+                }).then(function (resp) {
+                    if (!resp.ok && resp.status !== 302 && resp.status !== 200) {
+                        throw new Error('Create failed: ' + resp.status);
+                    }
+                    // reload the polls section by fetching the index HTML and extracting the .polls section
+                    return fetch('/');
+                }).then(function (resp) {
+                    if (!resp.ok) throw new Error('Failed fetching updated polls');
+                    return resp.text();
+                }).then(function (html) {
+                    try {
+                        var parser = new DOMParser();
+                        var doc = parser.parseFromString(html, 'text/html');
+                        var newPolls = doc.querySelector('.polls');
+                        var curPolls = document.querySelector('.polls');
+                        if (newPolls && curPolls) {
+                            curPolls.innerHTML = newPolls.innerHTML;
+                        } else {
+                            // fallback: reload the page
+                            window.location.reload();
+                        }
+                        // hide the create section after success
+                        if (section) section.style.display = 'none';
+                    } catch (err) {
+                        console.error(err);
+                        window.location.reload();
+                    }
+                }).catch(function (err) {
+                    console.error(err);
+                    alert('Error creating poll. See console for details.');
                 });
             });
         }
