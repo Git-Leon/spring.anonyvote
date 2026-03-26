@@ -1,6 +1,5 @@
 package com.github.curriculeon;
 
-import com.github.curriculeon.model.Person;
 import org.springframework.context.annotation.Bean;
 
 import java.time.Clock;
@@ -11,11 +10,6 @@ import java.time.Clock;
  */
 @org.springframework.context.annotation.Configuration
 public class AppConfig {
-    @Bean(name = "default-person")
-    public Person defaultPersonToBeCreatedWhenApplicaitonStarts() {
-        return new Person();
-    }
-
     @Bean
     public Clock systemClock() {
         return Clock.systemUTC();
