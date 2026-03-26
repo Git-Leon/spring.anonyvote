@@ -15,20 +15,20 @@
     <span th:text="${error}"></span>
 </div>
 
-<div th:if="${resultsVisible}">
-    <h3>Results (visible)</h3>
+<div id="results" th:if="${resultsVisible} or ${viewerHasVoted}" style="display: none;">
+    <h3 id="results-title" th:text="${resultsVisible} ? 'Results (visible)' : 'Current results (you voted)'">Results</h3>
     <div th:each="opt : ${poll.options}">
         <div>
             <strong th:text="${opt.text}"></strong>
-            - Votes: <span th:text="${counts[opt.id]} ?: 0"></span>
-            (<span th:text="${totalVotes > 0 ? ((counts[opt.id] ?: 0) * 100.0 / totalVotes) : 0}"></span>%)
+            - Votes: <span id="count-[[${opt.id}]]" th:text="${counts[opt.id]} ?: 0"></span>
+            (<span id="percent-[[${opt.id}]]" th:text="${totalVotes > 0 ? ((counts[opt.id] ?: 0) * 100.0 / totalVotes) : 0}"></span>%)
         </div>
     </div>
 </div>
 
-<div th:if="${!resultsVisible}">
+<div th:if="${!resultsVisible} and ${!viewerHasVoted}">
     <p>Voting is open. Results will be visible after <span th:text="${poll.resultsVisibleAt}"></span>.</p>
-    <form th:action="@{/poll/{id}/vote(id=${poll.id})}" method="post">
+    <form id="vote-form" th:action="@{/poll/{id}/vote(id=${poll.id})}" method="post">
         <div th:each="opt : ${poll.options}">
             <label>
                 <input type="radio" name="optionId" th:value="${opt.id}" required>
@@ -42,6 +42,10 @@
     </form>
 </div>
 
+<div th:if="${!resultsVisible} and ${viewerHasVoted}">
+    <p>Thank you — your vote was recorded. You can see the current results below.</p>
+</div>
+
 <p><a href="/">Back</a></p>
 
 <script>
@@ -53,6 +57,98 @@
         }
         if(!getCookie('ANV_VOTER')){
             document.cookie = 'ANV_VOTER=' + (function(){return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0,v=c=='x'?r:(r&0x3|0x8);return v.toString(16);});})() + '; path=/; max-age=' + (60*60*24*365);
+        }
+    })();
+</script>
+
+<script>
+    // AJAX vote submission and realtime counts update
+    (function(){
+        // helper: show the results block
+        function showResults() {
+            var results = document.getElementById('results');
+            if(results) results.style.display = 'block';
+        }
+
+        // update counts and percents in the DOM
+        function updateCounts(data) {
+            try {
+                var counts = data.counts || {};
+                var total = data.totalVotes || 0;
+                Object.keys(counts).forEach(function(key){
+                    var id = key;
+                    var cnt = counts[key] || 0;
+                    var el = document.getElementById('count-' + id);
+                    if (el) el.textContent = cnt;
+                    var pel = document.getElementById('percent-' + id);
+                    if (pel) {
+                        var pct = total > 0 ? (cnt * 100.0 / total) : 0;
+                        pel.textContent = Math.round(pct*100)/100;
+                    }
+                });
+                var title = document.getElementById('results-title');
+                if (title) title.textContent = 'Current results (you voted)';
+                showResults();
+            } catch(e) { console.error(e); }
+        }
+
+        function showMessage(text, type) {
+            var msg = document.getElementById('vote-message');
+            if (!msg) return;
+            msg.textContent = text || '';
+            msg.style.display = text ? 'block' : 'none';
+            msg.style.color = type === 'error' ? '#900' : '#064';
+            msg.style.background = type === 'error' ? '#ffecec' : '#e6ffed';
+            msg.style.border = '1px solid ' + (type === 'error' ? '#f2b6b6' : '#b6f2c3');
+            msg.style.padding = '8px';
+            msg.style.marginBottom = '12px';
+        }
+
+        var form = document.getElementById('vote-form');
+        if (form) {
+            // insert a message area above the form (if not already present)
+            var existing = document.getElementById('vote-message');
+            if (!existing) {
+                var container = document.createElement('div');
+                container.id = 'vote-message';
+                container.style.display = 'none';
+                form.parentNode.insertBefore(container, form);
+            }
+
+            form.addEventListener('submit', function(e){
+                e.preventDefault();
+                showMessage('Submitting your vote...', 'info');
+
+                // disable submit buttons to prevent double submissions
+                var submitBtn = form.querySelector('button[type="submit"]');
+                if (submitBtn) submitBtn.disabled = true;
+
+                var fd = new FormData(form);
+                var action = form.getAttribute('action');
+
+                fetch(action, {
+                    method: 'POST',
+                    body: fd,
+                    credentials: 'same-origin',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                }).then(function(resp){
+                    if (!resp.ok) throw new Error('Vote request failed with status ' + resp.status);
+                    // After voting, fetch counts and update UI
+                    return fetch(window.location.pathname + '/counts', { credentials: 'same-origin' });
+                }).then(function(r){
+                    if (!r.ok) throw new Error('Counts request failed with status ' + r.status);
+                    return r.json();
+                }).then(function(json){
+                    updateCounts(json);
+                    showMessage('Thanks — your anonymous vote was recorded.', 'success');
+                }).catch(function(err){
+                    console.error('Vote/update failed', err);
+                    showMessage('There was a problem recording your vote. Please try again.', 'error');
+                }).finally(function(){
+                    var submitBtn = form.querySelector('button[type="submit"]');
+                    if (submitBtn) submitBtn.disabled = false;
+                });
+            });
         }
     })();
 </script>

@@ -1,5 +1,6 @@
 # Agent guidelines — repository automation
 
+
 This repository contains concise, prescriptive guidance for automated agents and CI automation.
 
 Purpose

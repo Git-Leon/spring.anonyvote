@@ -91,4 +91,13 @@ public class PollService {
         }
         return map;
     }
+
+    /**
+     * Return true if the provided fingerprint has cast at least one vote for the given poll.
+     */
+    public boolean hasVoted(Long pollId, String fingerprint) {
+        if (fingerprint == null || fingerprint.trim().isEmpty()) return false;
+        List<Vote> votes = voteRepository.findByPoll_IdAndFingerprint(pollId, fingerprint);
+        return votes != null && !votes.isEmpty();
+    }
 }

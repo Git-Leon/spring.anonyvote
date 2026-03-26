@@ -8,6 +8,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
@@ -67,14 +69,28 @@ public class PollController {
             }
         }
         model.addAttribute("fingerprint", fingerprint);
+
+        // If results are not globally visible, allow a voter who has just voted to see current counts
+        boolean viewerHasVoted = false;
+        if (!visible && fingerprint != null && !fingerprint.trim().isEmpty()) {
+            viewerHasVoted = pollService.hasVoted(id, fingerprint);
+            if (viewerHasVoted) {
+                Map<Long, Long> counts = pollService.countsForPoll(poll);
+                long total = counts.values().stream().mapToLong(Long::longValue).sum();
+                model.addAttribute("counts", counts);
+                model.addAttribute("totalVotes", total);
+            }
+        }
+        model.addAttribute("viewerHasVoted", viewerHasVoted);
         return "poll";
     }
 
     @PostMapping("/poll/{id}/vote")
-    public String vote(@PathVariable Long id, @RequestParam Long optionId,
+    public Object vote(@PathVariable Long id, @RequestParam Long optionId,
                        @CookieValue(value = "ANV_VOTER", required = false) String fingerprint,
                        HttpServletResponse response,
-                       RedirectAttributes redirectAttributes) {
+                       RedirectAttributes redirectAttributes,
+                       HttpServletRequest request) {
         // if no fingerprint cookie, create one and set it for future requests
         if (fingerprint == null || fingerprint.trim().isEmpty()) {
             fingerprint = UUID.randomUUID().toString();
@@ -83,17 +99,41 @@ public class PollController {
             cookie.setMaxAge(60 * 60 * 24 * 365); // 1 year
             response.addCookie(cookie);
         }
-
+        boolean isAjax = "XMLHttpRequest".equals(request.getHeader("X-Requested-With"));
         try {
             pollService.vote(id, optionId, fingerprint);
         } catch (IllegalStateException ex) {
-            // duplicate vote detected — add flash message so UI can display it
-            redirectAttributes.addFlashAttribute("error", "You have already voted on this poll from this browser.");
-            return "redirect:/poll/" + id;
+            // duplicate vote detected
+            if (isAjax) {
+                Map<String, String> body = new HashMap<>();
+                body.put("error", "You have already voted on this poll from this browser.");
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+            } else {
+                redirectAttributes.addFlashAttribute("error", "You have already voted on this poll from this browser.");
+                return "redirect:/poll/" + id;
+            }
         }
 
-        redirectAttributes.addFlashAttribute("message", "Thanks — your anonymous vote was recorded.");
-        return "redirect:/poll/" + id;
+        if (isAjax) {
+            Map<String, String> body = new HashMap<>();
+            body.put("message", "Thanks — your anonymous vote was recorded.");
+            return ResponseEntity.ok(body);
+        } else {
+            redirectAttributes.addFlashAttribute("message", "Thanks — your anonymous vote was recorded.");
+            return "redirect:/poll/" + id;
+        }
+    }
+
+    @GetMapping("/poll/{id}/counts")
+    @ResponseBody
+    public Map<String, Object> counts(@PathVariable Long id) {
+        Poll poll = pollService.findById(id).orElseThrow(() -> new NoSuchElementException("Poll not found"));
+        Map<Long, Long> counts = pollService.countsForPoll(poll);
+        long total = counts.values().stream().mapToLong(Long::longValue).sum();
+        Map<String, Object> resp = new HashMap<>();
+        resp.put("counts", counts);
+        resp.put("totalVotes", total);
+        return resp;
     }
 
 }

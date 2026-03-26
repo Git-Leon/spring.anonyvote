@@ -1,4 +1,4 @@
-/* Simple clean stylesheet for the demo index page */
+/* Simple clean stylesheet for the index page */
 :root{
   --bg:#f6f8fa;
   --card:#ffffff;
@@ -90,3 +90,7 @@ body{
   .controls{flex-direction:column;align-items:stretch}
   .form-card{width:100%}
 }
+
+/* subtle enter animation for newly-inserted polls */
+.poll{opacity:1;transform:none;transition:opacity .35s ease, transform .35s ease}
+.poll.hidden-insert{opacity:0;transform:translateY(-10px)}

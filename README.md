@@ -3,7 +3,7 @@
 * **Objective** - To create a full-stack monolithic application
 * **Purpose** - To gain familiarity with connecting a web service to a front end application
 * **Description**
-   * Run this application by running the main method in `DemoApplication`.
+   * Run this application by executing the main application class.
    * Navigate to the server port specified in the [application.properties file](./src/main/resources/application.properties). By default, the port number is `8080`
    * If your application cannot run because something is occupying a port, execute this command from `Git Bash` with the respective port number specified:
        * ``kill -kill `lsof -t -i tcp:8080` ``
@@ -45,7 +45,7 @@ the Pages site is not yet available (HTTP 404 due to propagation), use the raw
 fallback link in the "JaCoCo coverage report (published)" section below.
 
 Note: The project serves server-rendered Thymeleaf templates as the canonical
-root pages. A small demo UI (poll creation + poll listing) has been merged into
+root pages. A small UI (poll creation + poll listing) has been merged into
 `src/main/resources/templates/index.html`. There are no longer competing static
 `index.html` files in the `resources/static/` folder.
 

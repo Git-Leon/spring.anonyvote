@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -eu
 
-java -jar target/demo-0.0.1-SNAPSHOT.jar > /tmp/spring_server.log 2>&1 &
+java -jar target/*.jar > /tmp/spring_server.log 2>&1 &
 pid=$!
 echo "server pid: $pid"
 echo "waiting for http://localhost:8080 (timeout 60s)..."
