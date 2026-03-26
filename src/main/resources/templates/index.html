@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Anonyvote — Demo</title>
+    <title>Anonyvote</title>
     <link rel="stylesheet" th:href="@{/style.css}" />
     <script
             src="https://code.jquery.com/jquery-3.4.1.js"
@@ -15,8 +15,8 @@
     <div id="flash" style="display:none; padding:8px; margin-bottom:12px; border-radius:4px;
                 background: #e6ffed; color: #084b22; box-shadow: 0 1px 2px rgba(0,0,0,0.04);"></div>
     <header class="site-header">
-        <h1>Anonyvote — Demo</h1>
-        <p class="lead">Create and browse anonymous polls (demo).</p>
+    <h1>Anonyvote</h1>
+    <p class="lead">Create and browse anonymous polls.</p>
     </header>
 
     <section class="controls">
@@ -84,7 +84,7 @@
         </div>
     </section>
 
-    <footer class="site-footer">Generated demo UI — not for production use.</footer>
+    <footer class="site-footer">Generated UI.</footer>
 </main>
 <script>
     // Toggle visibility of embedded create poll section
@@ -248,7 +248,15 @@
                                         });
                                         // prepend the new poll (clone to detach from parsed doc)
                                         var clone = newPollEntry.cloneNode(true);
+                                        // mark as hidden so CSS transition can animate it into place
+                                        clone.classList.add('hidden-insert');
                                         curContainer.insertBefore(clone, curContainer.firstChild);
+                                        // trigger transition in next animation frame
+                                        requestAnimationFrame(function () {
+                                            requestAnimationFrame(function () {
+                                                try { clone.classList.remove('hidden-insert'); } catch (e) { /* ignore */ }
+                                            });
+                                        });
                                     } else {
                                         // nothing to insert: fallback to full replace
                                         curPolls.innerHTML = newPolls.innerHTML;

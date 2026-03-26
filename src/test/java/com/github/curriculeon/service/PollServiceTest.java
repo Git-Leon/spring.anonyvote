@@ -124,4 +124,22 @@ public class PollServiceTest {
         assertEquals("A", p.getOptions().get(0).getText());
         assertEquals("B", p.getOptions().get(1).getText());
     }
+
+    @Test
+    public void hasVoted_returnsTrueWhenVoteExists() {
+        when(voteRepository.findByPoll_IdAndFingerprint(5L, "fp1")).thenReturn(Arrays.asList(new Vote()));
+
+        boolean out = pollService.hasVoted(5L, "fp1");
+
+        assertTrue(out);
+    }
+
+    @Test
+    public void hasVoted_returnsFalseWhenNoVote() {
+        when(voteRepository.findByPoll_IdAndFingerprint(6L, "fp2")).thenReturn(Arrays.asList());
+
+        boolean out = pollService.hasVoted(6L, "fp2");
+
+        assertFalse(out);
+    }
 }

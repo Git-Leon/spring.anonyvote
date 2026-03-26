@@ -86,4 +86,37 @@ public class PollControllerUnitTest {
         .andExpect(status().is3xxRedirection())
         .andExpect(flash().attributeExists("message"));
     }
+
+    @Test
+    public void counts_endpoint_returns_json() throws Exception {
+        Poll p = new Poll();
+        when(pollService.findById(5L)).thenReturn(Optional.of(p));
+        Map<Long, Long> counts = new HashMap<>();
+        counts.put(1L, 3L);
+        when(pollService.countsForPoll(p)).thenReturn(counts);
+
+        mockMvc.perform(get("/poll/5/counts")).andExpect(status().isOk())
+                .andExpect(content().contentType("application/json;charset=UTF-8"))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("totalVotes")));
+    }
+
+    @Test
+    public void ajax_vote_success_returns_json() throws Exception {
+        when(pollService.vote(eq(6L), anyLong(), anyString())).thenReturn(new com.github.curriculeon.model.Vote());
+
+        mockMvc.perform(post("/poll/6/vote").param("optionId", "1").header("X-Requested-With", "XMLHttpRequest"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("application/json;charset=UTF-8"))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Thanks")));
+    }
+
+    @Test
+    public void ajax_vote_duplicate_returns_409() throws Exception {
+        when(pollService.vote(eq(7L), anyLong(), anyString())).thenThrow(new IllegalStateException("dup"));
+
+        mockMvc.perform(post("/poll/7/vote").param("optionId", "1").header("X-Requested-With", "XMLHttpRequest"))
+                .andExpect(status().isConflict())
+                .andExpect(content().contentType("application/json;charset=UTF-8"))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("already voted")));
+    }
 }
