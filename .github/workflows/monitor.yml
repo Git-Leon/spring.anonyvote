@@ -56,7 +56,7 @@ jobs:
           name: monitor-logs-${{ github.run_id }}
           path: logs/**
 
-      - name: Create GitHub issue on failure (deduplicated)
+      - name: Create or close monitor issue (deduplicated)
         uses: actions/github-script@v6
         with:
           script: |
@@ -66,10 +66,6 @@ jobs:
               rc = fs.readFileSync('logs/exit_code.txt','utf8').trim();
             } catch (e) {
               rc = '0';
-            }
-            if (rc === '0') {
-              console.log('Health check passed; no issue created.');
-              return;
             }
 
             let url = 'unspecified';
@@ -81,15 +77,33 @@ jobs:
             try {
               await github.rest.issues.getLabel({ owner: context.repo.owner, repo: context.repo.repo, name: labelName });
             } catch (e) {
-              // create label
               await github.rest.issues.createLabel({ owner: context.repo.owner, repo: context.repo.repo, name: labelName, color: 'b60205', description: 'Open monitor failures' });
             }
 
-            // Check for an existing open issue with the label that references this URL
+            // Helper: find open issues with label that reference this URL
             const issues = await github.rest.issues.listForRepo({ owner: context.repo.owner, repo: context.repo.repo, state: 'open', labels: labelName, per_page: 100 });
-            const exists = (issues.data || []).some(i => (i.body || '').includes(url));
-            if (exists) {
-              console.log(`An open monitor issue already exists for URL: ${url}. Skipping creation.`);
+            const matched = (issues.data || []).filter(i => (i.body || '').includes(url));
+
+            if (rc === '0') {
+              // Success: close any existing monitor issues for this URL with a recovery comment
+              if (matched.length === 0) {
+                console.log(`No open monitor issues found for URL ${url}; nothing to close.`);
+                return;
+              }
+              for (const issue of matched) {
+                await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: issue.number, body: `Monitor recovered on run ${process.env.GITHUB_RUN_ID}. Closing issue.` });
+                await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: issue.number, state: 'closed' });
+                console.log(`Closed issue #${issue.number} for URL ${url}`);
+              }
+              return;
+            }
+
+            // Failure: create a new issue only if none exists for this URL
+            if (matched.length > 0) {
+              console.log(`An open monitor issue already exists for URL: ${url}. Adding a comment and skipping creation.`);
+              for (const issue of matched) {
+                await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: issue.number, body: `Monitor still failing on run ${process.env.GITHUB_RUN_ID}. Exit code: ${rc}.` });
+              }
               return;
             }
 
