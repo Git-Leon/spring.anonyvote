@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PollController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">demo</a> &gt; <a href="index.source.html" class="el_package">com.github.curriculeon.controller</a> &gt; <span class="el_source">PollController.java</span></div><h1>PollController.java</h1><pre class="source lang-java linenums">package com.github.curriculeon.controller;
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PollController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Anonyvote</a> &gt; <a href="index.source.html" class="el_package">com.github.curriculeon.controller</a> &gt; <span class="el_source">PollController.java</span></div><h1>PollController.java</h1><pre class="source lang-java linenums">package com.github.curriculeon.controller;
 
 import com.github.curriculeon.model.Poll;
 import com.github.curriculeon.model.PollOption;
@@ -8,6 +8,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
@@ -20,80 +22,125 @@ public class PollController {
     private final PollService pollService;
 
     @Autowired
-<span class="fc" id="L23">    public PollController(PollService pollService) {</span>
-<span class="fc" id="L24">        this.pollService = pollService;</span>
-<span class="fc" id="L25">    }</span>
+<span class="fc" id="L25">    public PollController(PollService pollService) {</span>
+<span class="fc" id="L26">        this.pollService = pollService;</span>
+<span class="fc" id="L27">    }</span>
 
     @GetMapping({&quot;/&quot;, &quot;/index&quot;})
     public String index(Model model) {
-<span class="fc" id="L29">        List&lt;Poll&gt; recent = pollService.recentPolls();</span>
-<span class="fc" id="L30">        model.addAttribute(&quot;polls&quot;, recent);</span>
-<span class="fc" id="L31">        model.addAttribute(&quot;now&quot;, Instant.now());</span>
-<span class="fc" id="L32">        return &quot;index&quot;;</span>
+<span class="fc" id="L31">        List&lt;Poll&gt; recent = pollService.recentPolls();</span>
+<span class="fc" id="L32">        model.addAttribute(&quot;polls&quot;, recent);</span>
+<span class="fc" id="L33">        model.addAttribute(&quot;now&quot;, Instant.now());</span>
+<span class="fc" id="L34">        return &quot;index&quot;;</span>
     }
 
     @GetMapping(&quot;/create&quot;)
     public String createForm() {
-<span class="fc" id="L37">        return &quot;create&quot;;</span>
+<span class="fc" id="L39">        return &quot;create&quot;;</span>
     }
 
     @PostMapping(&quot;/create&quot;)
     public String createSubmit(@RequestParam String question, @RequestParam(name = &quot;option&quot;) List&lt;String&gt; options) {
-<span class="fc" id="L42">        pollService.createPoll(question, options);</span>
-<span class="fc" id="L43">        return &quot;redirect:/&quot;;</span>
+<span class="fc" id="L44">        pollService.createPoll(question, options);</span>
+<span class="fc" id="L45">        return &quot;redirect:/&quot;;</span>
     }
 
     @GetMapping(&quot;/poll/{id}&quot;)
     public String viewPoll(@PathVariable Long id, Model model, HttpServletRequest request) {
-<span class="fc" id="L48">        Poll poll = pollService.findById(id).orElseThrow(() -&gt; new NoSuchElementException(&quot;Poll not found&quot;));</span>
-<span class="fc" id="L49">        boolean visible = pollService.isResultsVisible(poll);</span>
-<span class="fc" id="L50">        model.addAttribute(&quot;poll&quot;, poll);</span>
-<span class="fc" id="L51">        model.addAttribute(&quot;resultsVisible&quot;, visible);</span>
-<span class="fc bfc" id="L52" title="All 2 branches covered.">        if (visible) {</span>
-<span class="fc" id="L53">            Map&lt;Long, Long&gt; counts = pollService.countsForPoll(poll);</span>
-<span class="fc" id="L54">            long total = counts.values().stream().mapToLong(Long::longValue).sum();</span>
-<span class="fc" id="L55">            model.addAttribute(&quot;counts&quot;, counts);</span>
-<span class="fc" id="L56">            model.addAttribute(&quot;totalVotes&quot;, total);</span>
+<span class="fc" id="L50">        Poll poll = pollService.findById(id).orElseThrow(() -&gt; new NoSuchElementException(&quot;Poll not found&quot;));</span>
+<span class="fc" id="L51">        boolean visible = pollService.isResultsVisible(poll);</span>
+<span class="fc" id="L52">        model.addAttribute(&quot;poll&quot;, poll);</span>
+<span class="fc" id="L53">        model.addAttribute(&quot;resultsVisible&quot;, visible);</span>
+<span class="fc bfc" id="L54" title="All 2 branches covered.">        if (visible) {</span>
+<span class="fc" id="L55">            Map&lt;Long, Long&gt; counts = pollService.countsForPoll(poll);</span>
+<span class="fc" id="L56">            long total = counts.values().stream().mapToLong(Long::longValue).sum();</span>
+<span class="fc" id="L57">            model.addAttribute(&quot;counts&quot;, counts);</span>
+<span class="fc" id="L58">            model.addAttribute(&quot;totalVotes&quot;, total);</span>
         }
 
         // ensure a voter fingerprint cookie exists so frontend will send it on vote
-<span class="fc" id="L60">        String fingerprint = null;</span>
-<span class="fc bfc" id="L61" title="All 2 branches covered.">        if (request.getCookies() != null) {</span>
-<span class="fc bfc" id="L62" title="All 2 branches covered.">            for (Cookie c : request.getCookies()) {</span>
-<span class="fc bfc" id="L63" title="All 2 branches covered.">                if (&quot;ANV_VOTER&quot;.equals(c.getName())) {</span>
-<span class="fc" id="L64">                    fingerprint = c.getValue();</span>
-<span class="fc" id="L65">                    break;</span>
+<span class="fc" id="L62">        String fingerprint = null;</span>
+<span class="fc bfc" id="L63" title="All 2 branches covered.">        if (request.getCookies() != null) {</span>
+<span class="fc bfc" id="L64" title="All 2 branches covered.">            for (Cookie c : request.getCookies()) {</span>
+<span class="fc bfc" id="L65" title="All 2 branches covered.">                if (&quot;ANV_VOTER&quot;.equals(c.getName())) {</span>
+<span class="fc" id="L66">                    fingerprint = c.getValue();</span>
+<span class="fc" id="L67">                    break;</span>
                 }
             }
         }
-<span class="fc" id="L69">        model.addAttribute(&quot;fingerprint&quot;, fingerprint);</span>
-<span class="fc" id="L70">        return &quot;poll&quot;;</span>
+<span class="fc" id="L71">        model.addAttribute(&quot;fingerprint&quot;, fingerprint);</span>
+
+        // If results are not globally visible, allow a voter who has just voted to see current counts
+<span class="fc" id="L74">        boolean viewerHasVoted = false;</span>
+<span class="pc bpc" id="L75" title="1 of 6 branches missed.">        if (!visible &amp;&amp; fingerprint != null &amp;&amp; !fingerprint.trim().isEmpty()) {</span>
+<span class="fc" id="L76">            viewerHasVoted = pollService.hasVoted(id, fingerprint);</span>
+<span class="pc bpc" id="L77" title="1 of 2 branches missed.">            if (viewerHasVoted) {</span>
+<span class="nc" id="L78">                Map&lt;Long, Long&gt; counts = pollService.countsForPoll(poll);</span>
+<span class="nc" id="L79">                long total = counts.values().stream().mapToLong(Long::longValue).sum();</span>
+<span class="nc" id="L80">                model.addAttribute(&quot;counts&quot;, counts);</span>
+<span class="nc" id="L81">                model.addAttribute(&quot;totalVotes&quot;, total);</span>
+            }
+        }
+<span class="fc" id="L84">        model.addAttribute(&quot;viewerHasVoted&quot;, viewerHasVoted);</span>
+<span class="fc" id="L85">        return &quot;poll&quot;;</span>
     }
 
     @PostMapping(&quot;/poll/{id}/vote&quot;)
-    public String vote(@PathVariable Long id, @RequestParam Long optionId,
+    public Object vote(@PathVariable Long id, @RequestParam Long optionId,
                        @CookieValue(value = &quot;ANV_VOTER&quot;, required = false) String fingerprint,
                        HttpServletResponse response,
-                       RedirectAttributes redirectAttributes) {
+                       RedirectAttributes redirectAttributes,
+                       HttpServletRequest request) {
         // if no fingerprint cookie, create one and set it for future requests
-<span class="fc bfc" id="L79" title="All 4 branches covered.">        if (fingerprint == null || fingerprint.trim().isEmpty()) {</span>
-<span class="fc" id="L80">            fingerprint = UUID.randomUUID().toString();</span>
-<span class="fc" id="L81">            Cookie cookie = new Cookie(&quot;ANV_VOTER&quot;, fingerprint);</span>
-<span class="fc" id="L82">            cookie.setPath(&quot;/&quot;);</span>
-<span class="fc" id="L83">            cookie.setMaxAge(60 * 60 * 24 * 365); // 1 year</span>
-<span class="fc" id="L84">            response.addCookie(cookie);</span>
+<span class="fc bfc" id="L95" title="All 4 branches covered.">        if (fingerprint == null || fingerprint.trim().isEmpty()) {</span>
+<span class="fc" id="L96">            fingerprint = UUID.randomUUID().toString();</span>
+<span class="fc" id="L97">            Cookie cookie = new Cookie(&quot;ANV_VOTER&quot;, fingerprint);</span>
+<span class="fc" id="L98">            cookie.setPath(&quot;/&quot;);</span>
+<span class="fc" id="L99">            cookie.setMaxAge(60 * 60 * 24 * 365); // 1 year</span>
+<span class="fc" id="L100">            response.addCookie(cookie);</span>
         }
-
+<span class="fc" id="L102">        boolean isAjax = &quot;XMLHttpRequest&quot;.equals(request.getHeader(&quot;X-Requested-With&quot;));</span>
         try {
-<span class="fc" id="L88">            pollService.vote(id, optionId, fingerprint);</span>
-<span class="fc" id="L89">        } catch (IllegalStateException ex) {</span>
-            // duplicate vote detected — add flash message so UI can display it
-<span class="fc" id="L91">            redirectAttributes.addFlashAttribute(&quot;error&quot;, &quot;You have already voted on this poll from this browser.&quot;);</span>
-<span class="fc" id="L92">            return &quot;redirect:/poll/&quot; + id;</span>
-<span class="fc" id="L93">        }</span>
+<span class="fc" id="L104">            pollService.vote(id, optionId, fingerprint);</span>
+<span class="fc" id="L105">        } catch (IllegalStateException ex) {</span>
+            // duplicate vote detected
+<span class="fc bfc" id="L107" title="All 2 branches covered.">            if (isAjax) {</span>
+<span class="fc" id="L108">                Map&lt;String, String&gt; body = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L109">                body.put(&quot;error&quot;, &quot;You have already voted on this poll from this browser.&quot;);</span>
+<span class="fc" id="L110">                return ResponseEntity.status(HttpStatus.CONFLICT).body(body);</span>
+            } else {
+<span class="fc" id="L112">                redirectAttributes.addFlashAttribute(&quot;error&quot;, &quot;You have already voted on this poll from this browser.&quot;);</span>
+<span class="fc" id="L113">                return &quot;redirect:/poll/&quot; + id;</span>
+            }
+<span class="fc" id="L115">        }</span>
 
-<span class="fc" id="L95">        redirectAttributes.addFlashAttribute(&quot;message&quot;, &quot;Thanks — your anonymous vote was recorded.&quot;);</span>
-<span class="fc" id="L96">        return &quot;redirect:/poll/&quot; + id;</span>
+<span class="fc bfc" id="L117" title="All 2 branches covered.">        if (isAjax) {</span>
+<span class="fc" id="L118">            Map&lt;String, String&gt; body = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L119">            body.put(&quot;message&quot;, &quot;Thanks — your anonymous vote was recorded.&quot;);</span>
+<span class="fc" id="L120">            return ResponseEntity.ok(body);</span>
+        } else {
+<span class="fc" id="L122">            redirectAttributes.addFlashAttribute(&quot;message&quot;, &quot;Thanks — your anonymous vote was recorded.&quot;);</span>
+<span class="fc" id="L123">            return &quot;redirect:/poll/&quot; + id;</span>
+        }
+    }
+
+    @GetMapping(&quot;/poll/{id}/counts&quot;)
+    @ResponseBody
+    public Map&lt;String, Object&gt; counts(@PathVariable Long id) {
+<span class="pc" id="L130">        Poll poll = pollService.findById(id).orElseThrow(() -&gt; new NoSuchElementException(&quot;Poll not found&quot;));</span>
+<span class="fc" id="L131">        Map&lt;Long, Long&gt; counts = pollService.countsForPoll(poll);</span>
+<span class="fc" id="L132">        long total = counts.values().stream().mapToLong(Long::longValue).sum();</span>
+<span class="fc" id="L133">        Map&lt;String, Object&gt; resp = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L134">        resp.put(&quot;counts&quot;, counts);</span>
+<span class="fc" id="L135">        resp.put(&quot;totalVotes&quot;, total);</span>
+<span class="fc" id="L136">        return resp;</span>
+    }
+
+    @GetMapping(&quot;/health&quot;)
+    @ResponseBody
+    public ResponseEntity&lt;String&gt; health() {
+        // Simple public health endpoint for external monitors. Keep lightweight.
+<span class="nc" id="L143">        return ResponseEntity.ok(&quot;OK&quot;);</span>
     }
 
 }
