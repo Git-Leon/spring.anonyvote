@@ -44,4 +44,11 @@ public class PersonModelAdditionalBranchTests {
         Assert.assertEquals(a, b);
         Assert.assertEquals(b, a);
     }
+
+    @Test
+    public void hashCodeWithLastNameOnly() {
+        Person p = new Person(null, null, "SoloLast");
+        int expected = 31 * 0 + ("SoloLast".hashCode());
+        Assert.assertEquals(expected, p.hashCode());
+    }
 }
