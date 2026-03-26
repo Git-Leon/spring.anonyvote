@@ -58,4 +58,7 @@ HTML report is also available as a workflow artifact from the CI debug run if
 you need to download it manually.
 
 
+<!-- redeploy-trigger: 2026-03-26 - trigger to re-run Pages publish workflow -->
+
+
 
