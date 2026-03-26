@@ -45,7 +45,7 @@ the Pages site is not yet available (HTTP 404 due to propagation), use the raw
 fallback link in the "JaCoCo coverage report (published)" section below.
 
 Note: The project serves server-rendered Thymeleaf templates as the canonical
-root pages. A small demo UI (person-create + poll listing) has been merged into
+root pages. A small demo UI (poll creation + poll listing) has been merged into
 `src/main/resources/templates/index.html`. There are no longer competing static
 `index.html` files in the `resources/static/` folder.
 
