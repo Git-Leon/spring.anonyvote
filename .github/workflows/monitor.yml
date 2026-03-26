@@ -1,0 +1,134 @@
+name: CI / scheduled-monitor
+
+on:
+  schedule:
+    - cron: '*/15 * * * *' # every 15 minutes — change as needed
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'Optional URL to check. If not provided, uses the DEPLOY_URL secret.'
+        required: false
+        default: ''
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Make health script executable
+        run: chmod +x scripts/health_check.sh || true
+
+      - name: Run health check and collect logs
+        env:
+          DEPLOY_URL: ${{ secrets.DEPLOY_URL }}
+          API_TOKEN: ${{ secrets.DEPLOY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          # Determine URL: prefer workflow input, then secret
+          URL="${{ github.event.inputs.url }}"
+          if [ -z "$URL" ]; then
+            URL="${DEPLOY_URL:-}"
+          fi
+          if [ -z "$URL" ]; then
+            echo "No URL provided via workflow input or DEPLOY_URL secret. Exiting with failure." >&2
+            exit 1
+          fi
+          echo "Using URL: $URL"
+
+          # Run health check but don't fail the step immediately so we can upload logs
+          if ./scripts/health_check.sh "$URL"; then
+            RC=0
+          else
+            RC=$?
+          fi
+
+          echo "Health check exit code: $RC"
+          mkdir -p logs
+          echo "$RC" > logs/exit_code.txt
+          echo "$URL" > logs/url.txt
+          ls -la logs || true
+
+      - name: Upload logs artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: monitor-logs-${{ github.run_id }}
+          path: logs/**
+
+      - name: Monitor issues with pending threshold
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const threshold = parseInt(process.env.MONITOR_THRESHOLD || '3', 10);
+            let rc = '0';
+            try { rc = fs.readFileSync('logs/exit_code.txt','utf8').trim(); } catch (e) { rc = '0'; }
+            let url = 'unspecified';
+            try { url = fs.readFileSync('logs/url.txt','utf8').trim(); } catch(e) { /* ignore */ }
+
+            const pendingLabel = 'monitor-pending';
+            const failLabel = 'monitor-failure';
+
+            // Ensure labels exist
+            async function ensureLabel(name, color, desc) {
+              try { await github.rest.issues.getLabel({ owner: context.repo.owner, repo: context.repo.repo, name }); }
+              catch (e) { await github.rest.issues.createLabel({ owner: context.repo.owner, repo: context.repo.repo, name, color, description: desc }); }
+            }
+            await ensureLabel(pendingLabel, 'f9d0c4', 'Pending monitor failures (awaiting threshold)');
+            await ensureLabel(failLabel, 'b60205', 'Open monitor failures');
+
+            // Find open issues with either label that reference this URL
+            const issues = await github.rest.issues.listForRepo({ owner: context.repo.owner, repo: context.repo.repo, state: 'open', labels: `${pendingLabel},${failLabel}`, per_page: 100 });
+            const matched = (issues.data || []).filter(i => (i.body || '').includes(url));
+
+            if (rc === '0') {
+              // Success: close any matching pending or failure issues with recovery comment
+              for (const issue of matched) {
+                await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: issue.number, body: `Monitor recovered on run ${process.env.GITHUB_RUN_ID}. Closing issue.` });
+                await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: issue.number, state: 'closed' });
+                console.log(`Closed issue #${issue.number} for URL ${url}`);
+              }
+              if (matched.length === 0) console.log(`No open monitor issues found for URL ${url}; nothing to close.`);
+              return;
+            }
+
+            // Failure handling with pending threshold
+            if (matched.length > 0) {
+              // Prefer pending issues if any
+              const pending = matched.find(i => (i.labels || []).some(l => l.name === pendingLabel));
+              const failed = matched.find(i => (i.labels || []).some(l => l.name === failLabel));
+
+              if (failed) {
+                // Already escalated
+                await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: failed.number, body: `Monitor still failing on run ${process.env.GITHUB_RUN_ID}. Exit code: ${rc}.` });
+                console.log(`Existing failure issue #${failed.number} updated.`);
+                return;
+              }
+
+              if (pending) {
+                // Read failure_count from body
+                const m = (pending.body || '').match(/failure_count:\s*(\d+)/i);
+                let count = m ? parseInt(m[1], 10) : 0;
+                count += 1;
+                if (count >= threshold) {
+                  // Escalate: replace label with failLabel
+                  await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: pending.number, body: `Threshold reached (${count}). Escalating to ${failLabel}.` });
+                  await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: pending.number, labels: [failLabel] });
+                  console.log(`Escalated pending issue #${pending.number} to ${failLabel}.`);
+                } else {
+                  // Update body with new count and add a comment
+                  const newBody = `failure_count: ${count}\n\nOriginal URL: ${url}\n\nLast run: ${process.env.GITHUB_RUN_ID}`;
+                  await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: pending.number, body: newBody });
+                  await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: pending.number, body: `Monitor failed again (run ${process.env.GITHUB_RUN_ID}). Count=${count}/${threshold}.` });
+                  console.log(`Updated pending issue #${pending.number} with count ${count}.`);
+                }
+                return;
+              }
+            }
+
+            // No existing issue: create a pending issue with failure_count = 1
+            const title = `Monitor (pending): health check failing for ${url}`;
+            const body = `failure_count: 1\n\nOriginal URL: ${url}\n\nFirst failing run: ${process.env.GITHUB_RUN_ID}\n\nArtifact: monitor-logs-${process.env.GITHUB_RUN_ID}`;
+            const issue = await github.rest.issues.create({ owner: context.repo.owner, repo: context.repo.repo, title, body, labels: [pendingLabel] });
+            console.log(`Created pending issue #${issue.data.number} for URL ${url}`);
