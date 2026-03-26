@@ -49,6 +49,21 @@ root pages. A small UI (poll creation + poll listing) has been merged into
 `src/main/resources/templates/index.html`. There are no longer competing static
 `index.html` files in the `resources/static/` folder.
 
+## Monitoring
+
+This repository includes a scheduled monitor workflow that checks the public
+`/health` endpoint of the deployed app and uploads debug artifacts when the
+check fails. If you see monitor failures, check the monitoring PR and issue
+for diagnostic logs:
+
+- Diagnostic PR with monitoring changes: https://github.com/Git-Leon/spring.anonyvote/pull/5
+- Active Issue tracking the current TLS/SNI problem: https://github.com/Git-Leon/spring.anonyvote/issues/9
+
+If you are responsible for the hosting/CDN configuration, please ensure the
+deployed hostname (for example, `spring.anonyvote.onrender.com`) is added as a
+custom domain on your hosting provider and that HTTPS is provisioned for it.
+The monitor collects `curl`/OpenSSL debug output to help diagnose TLS issues.
+
 ## JaCoCo coverage report (published)
 
 The JaCoCo HTML report has been published to GitHub Pages for this repository.
