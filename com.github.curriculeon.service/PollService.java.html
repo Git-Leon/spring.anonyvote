@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PollService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">demo</a> &gt; <a href="index.source.html" class="el_package">com.github.curriculeon.service</a> &gt; <span class="el_source">PollService.java</span></div><h1>PollService.java</h1><pre class="source lang-java linenums">package com.github.curriculeon.service;
+
+import com.github.curriculeon.model.Poll;
+import com.github.curriculeon.model.PollOption;
+import com.github.curriculeon.model.Vote;
+import com.github.curriculeon.repository.PollOptionRepository;
+import com.github.curriculeon.repository.PollRepository;
+import com.github.curriculeon.repository.VoteRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.*;
+import java.util.stream.Collectors;
+
+@Service
+public class PollService {
+    private final PollRepository pollRepository;
+    private final PollOptionRepository optionRepository;
+    private final VoteRepository voteRepository;
+    private final Clock clock;
+
+    @Autowired
+<span class="fc" id="L26">    public PollService(PollRepository pollRepository, PollOptionRepository optionRepository, VoteRepository voteRepository, Clock clock) {</span>
+<span class="fc" id="L27">        this.pollRepository = pollRepository;</span>
+<span class="fc" id="L28">        this.optionRepository = optionRepository;</span>
+<span class="fc" id="L29">        this.voteRepository = voteRepository;</span>
+<span class="fc" id="L30">        this.clock = clock;</span>
+<span class="fc" id="L31">    }</span>
+
+    public Poll createPoll(String question, List&lt;String&gt; optionTexts) {
+<span class="fc bfc" id="L34" title="All 2 branches covered.">        if (optionTexts == null) throw new IllegalArgumentException(&quot;Options required&quot;);</span>
+
+        // Trim and remove empty option entries (frontend allows empty optional option inputs)
+<span class="fc" id="L37">        List&lt;String&gt; texts = optionTexts.stream()</span>
+<span class="fc" id="L38">                .filter(Objects::nonNull)</span>
+<span class="fc" id="L39">                .map(String::trim)</span>
+<span class="fc bfc" id="L40" title="All 2 branches covered.">                .filter(s -&gt; !s.isEmpty())</span>
+<span class="fc" id="L41">                .collect(Collectors.toList());</span>
+
+<span class="fc bfc" id="L43" title="All 2 branches covered.">        if (texts.size() &lt; 2) throw new IllegalArgumentException(&quot;At least 2 options required&quot;);</span>
+<span class="fc bfc" id="L44" title="All 2 branches covered.">        if (texts.size() &gt; 6) throw new IllegalArgumentException(&quot;At most 6 options allowed&quot;);</span>
+
+<span class="fc" id="L46">        Instant now = Instant.now(clock);</span>
+<span class="fc" id="L47">        Instant resultsVisibleAt = now.plus(Duration.ofHours(24));</span>
+
+<span class="fc" id="L49">        Poll poll = new Poll(question, now, resultsVisibleAt);</span>
+<span class="fc bfc" id="L50" title="All 2 branches covered.">        for (String text : texts) {</span>
+<span class="fc" id="L51">            poll.addOption(new PollOption(text));</span>
+<span class="fc" id="L52">        }</span>
+<span class="fc" id="L53">        return pollRepository.save(poll);</span>
+    }
+
+    public Optional&lt;Poll&gt; findById(Long id) {
+<span class="fc" id="L57">        return pollRepository.findById(id);</span>
+    }
+
+    public List&lt;Poll&gt; recentPolls() {
+<span class="fc" id="L61">        return pollRepository.findAllByOrderByCreatedAtDesc();</span>
+    }
+
+    public boolean isResultsVisible(Poll poll) {
+<span class="fc" id="L65">        Instant now = Instant.now(clock);</span>
+<span class="fc bfc" id="L66" title="All 4 branches covered.">        return now.equals(poll.getResultsVisibleAt()) || now.isAfter(poll.getResultsVisibleAt());</span>
+    }
+
+    /**
+     * Cast an anonymous vote. If fingerprint is provided, attempt simple duplicate prevention.
+     */
+    public Vote vote(Long pollId, Long optionId, String fingerprint) {
+<span class="fc" id="L73">        Poll poll = pollRepository.findById(pollId).orElseThrow(() -&gt; new NoSuchElementException(&quot;Poll not found&quot;));</span>
+<span class="fc" id="L74">        PollOption option = optionRepository.findById(optionId).orElseThrow(() -&gt; new NoSuchElementException(&quot;Option not found&quot;));</span>
+
+<span class="fc bfc" id="L76" title="All 4 branches covered.">        if (fingerprint != null &amp;&amp; !fingerprint.trim().isEmpty()) {</span>
+<span class="fc bfc" id="L77" title="All 2 branches covered.">            if (voteRepository.existsByPoll_IdAndFingerprint(pollId, fingerprint)) {</span>
+<span class="fc" id="L78">                throw new IllegalStateException(&quot;Duplicate vote detected for this fingerprint&quot;);</span>
+            }
+        }
+
+<span class="fc" id="L82">        Vote vote = new Vote(poll, option, Instant.now(clock), fingerprint);</span>
+<span class="fc" id="L83">        return voteRepository.save(vote);</span>
+    }
+
+    public Map&lt;Long, Long&gt; countsForPoll(Poll poll) {
+<span class="fc" id="L87">        Map&lt;Long, Long&gt; map = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L88" title="All 2 branches covered.">        for (PollOption o : poll.getOptions()) {</span>
+<span class="fc" id="L89">            long c = voteRepository.countByOption_Id(o.getId());</span>
+<span class="fc" id="L90">            map.put(o.getId(), c);</span>
+<span class="fc" id="L91">        }</span>
+<span class="fc" id="L92">        return map;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

@@ -1,0 +1,10 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+demo,com.github.curriculeon.controller,PollController,0,185,0,12,0,40,0,13,0,7
+demo,com.github.curriculeon.controller,PersonController,0,96,0,0,0,22,0,8,0,8
+demo,com.github.curriculeon.model,Person,0,153,0,26,0,28,0,24,0,11
+demo,com.github.curriculeon.model,PollOption,0,26,0,0,0,11,0,7,0,7
+demo,com.github.curriculeon.model,Vote,0,33,0,0,0,12,0,7,0,7
+demo,com.github.curriculeon.model,Poll,0,87,0,4,0,27,0,14,0,12
+demo,com.github.curriculeon.service,PollService,0,215,0,22,0,38,0,21,0,10
+demo,com.github.curriculeon.service,PersonService,0,73,0,0,0,21,0,6,0,6
+demo,com.github.curriculeon,AppConfig,0,9,0,0,0,3,0,3,0,3
