@@ -33,24 +33,29 @@ We've also added a GitHub Actions workflow (`.github/workflows/ci.yml`) which ru
 the Maven `verify` lifecycle and uploads the JaCoCo XML as a build artifact for
 pull-requests and pushes to the `main`/`master` branches.
 
-## Status (placeholders)
+## Status
 
-You can add CI and Pages badges here after you push the repository to GitHub.
-Replace `<owner>` and `<repo>` with your GitHub account and repository name.
+CI and coverage badges for this repository:
 
-<!-- Replace <owner>/<repo> with your GitHub repo to enable these badges -->
-[![CI](https://github.com/<owner>/<repo>/actions/workflows/ci.yml/badge.svg)](https://github.com/<owner>/<repo>/actions/workflows/ci.yml) 
-[![JaCoCo report](https://github.com/<owner>/<repo>/actions/workflows/publish-jacoco.yml/badge.svg)](https://<owner>.github.io/<repo>/)
+[![CI](https://github.com/Git-Leon/spring.anonyvote/actions/workflows/ci.yml/badge.svg)](https://github.com/Git-Leon/spring.anonyvote/actions/workflows/ci.yml)
+[![JaCoCo report (Pages)](https://github.com/Git-Leon/spring.anonyvote/actions/workflows/publish-jacoco-pages.yml/badge.svg)](https://git-leon.github.io/spring.anonyvote/)
 
-```markdown
-[![CI](https://github.com/<owner>/<repo>/actions/workflows/ci.yml/badge.svg)](https://github.com/<owner>/<repo>/actions/workflows/ci.yml)
-```
+The JaCoCo Pages badge links to the published static HTML coverage report. If
+the Pages site is not yet available (HTTP 404 due to propagation), use the raw
+fallback link in the "JaCoCo coverage report (published)" section below.
 
-Pages (JaCoCo report) badge placeholder (the Pages site is available after the
-first successful deploy):
+## JaCoCo coverage report (published)
 
-```markdown
-[![JaCoCo report](https://github.com/<owner>/<repo>/actions/workflows/publish-jacoco.yml/badge.svg)](https://<owner>.github.io/<repo>/)
-```
+The JaCoCo HTML report has been published to GitHub Pages for this repository.
+
+- Public site: https://git-leon.github.io/spring.anonyvote/
+- Raw fallback (if the Pages URL returns 404 while GitHub finishes propagation):
+   https://raw.githubusercontent.com/Git-Leon/spring.anonyvote/gh-pages/index.html
+
+If the Pages site is not immediately available (HTTP 404), wait a minute and reload —
+GitHub sometimes needs a short moment to serve the new Pages content. The full
+HTML report is also available as a workflow artifact from the CI debug run if
+you need to download it manually.
+
 
 
