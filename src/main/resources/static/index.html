@@ -1,42 +1,48 @@
-<script
-        src="https://code.jquery.com/jquery-3.4.1.js"
-        integrity="sha256-WpOohJOqMqqyKL9FccASB9O0KwACQJpFTUBLTYOVvVU="
-        crossorigin="anonymous"></script>
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Anonyvote — Demo</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <script
+            src="https://code.jquery.com/jquery-3.4.1.js"
+            integrity="sha256-WpOohJOqMqqyKL9FccASB9O0KwACQJpFTUBLTYOVvVU="
+            crossorigin="anonymous"></script>
+</head>
+<body>
+<main class="container">
+    <header class="site-header">
+        <h1>Anonyvote — Demo</h1>
+        <p class="lead">Quick UI to create and list Person objects (demo only).</p>
+    </header>
 
+    <section class="controls">
+        <form class="inline-form" action="/person-controller/read-all" method="get">
+            <button class="btn" type="submit">Read All</button>
+        </form>
 
-<!--<form action="/person-controller/read" method="get">-->
-    <!--<input id="read-button" type="submit" value="read"/>-->
-<!--</form>-->
+        <form class="inline-form" action="/person-controller/create-default" method="post">
+            <button class="btn btn-secondary" type="submit">Create Default</button>
+        </form>
+    </section>
 
-
-<!--<form action="/person-controller/update" method="put">-->
-    <!--<input id="update-button" type="submit" value="update"/>-->
-<!--</form>-->
-
-
-<!--<form action="/person-controller/delete" method="delete">-->
-    <!--<input id="delete-button" type="submit" value="delete"/>-->
-<!--</form>-->
-
-
-<form action="/person-controller/read-all" method="get">
-    <input id="read-all-button" type="submit" value="read-all"/>
-</form>
-
-
-<form action="/person-controller/create-default" method="post">
-    <input id="create-default-button" type="submit" value="create-leon"/>
-</form>
-
-
-
-First Name: <input id="fname"><br>
-Last Name: <input id="lname"><br>
-<form>
-    <button onclick="create(event)">Create Person</button>
-</form>
-
-
+    <section class="create">
+        <h2>Create Person</h2>
+        <form id="create-person-form" class="form-card" onsubmit="create(event)">
+            <label class="form-row">First Name:
+                <input id="fname" class="text-input" name="firstName" autocomplete="given-name">
+            </label>
+            <label class="form-row">Last Name:
+                <input id="lname" class="text-input" name="lastName" autocomplete="family-name">
+            </label>
+            <div class="form-row">
+                <button class="btn btn-primary" type="submit">Create Person</button>
+            </div>
+        </form>
+    </section>
+    <footer class="site-footer">Generated demo UI — not for production use.</footer>
+</main>
 
 <script>
     class Person {
@@ -49,13 +55,10 @@ Last Name: <input id="lname"><br>
 
     function create(e) {
         e.preventDefault();
-        console.log("click")
-        let firstName1 = document.getElementById("fname").value;
-        let lastName1 = document.getElementById("lname").value;
-        let jsonPerson1 = new Person(0, firstName1, lastName1);
-        let personData = JSON.stringify(jsonPerson1);
-        console.log(personData)
-
+        const firstName1 = document.getElementById("fname").value.trim();
+        const lastName1 = document.getElementById("lname").value.trim();
+        const jsonPerson1 = new Person(0, firstName1, lastName1);
+        const personData = JSON.stringify(jsonPerson1);
 
         $.ajax({
             type: "POST",
@@ -67,7 +70,7 @@ Last Name: <input id="lname"><br>
             },
             url: "/person-controller/create",
             data: personData,
-            dataType: "JSON ",
+            dataType: "json",
             success: function (response) {
                 alert(JSON.stringify(response));
             },
@@ -78,3 +81,5 @@ Last Name: <input id="lname"><br>
 
     }
 </script>
+</body>
+</html>
