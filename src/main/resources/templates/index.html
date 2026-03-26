@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Anonyvote — Recent Polls</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 30px; }
+        .poll { border: 1px solid #ddd; padding: 12px; margin-bottom: 12px; }
+        a { text-decoration: none; color: #2b6ea3 }
+    </style>
+</head>
+<body>
+<h1>Anonyvote</h1>
+<p><a href="/create">Create a new poll</a></p>
+
+<h2>Recent polls</h2>
+
+<div>
+    <div th:if="${polls.size()} == 0">No polls yet</div>
+    <div th:each="poll : ${polls}" class="poll">
+        <h3 th:text="${poll.question}"></h3>
+        <div>Created: <span th:text="${poll.createdAt}"></span></div>
+        <div th:switch="${T(java.time.Instant).now().isAfter(poll.resultsVisibleAt)}">
+            <div th:case="true">Status: RESULTS_VISIBLE</div>
+            <div th:case="false">Status: RESULTS_PENDING</div>
+        </div>
+        <p><a th:href="@{/poll/{id}(id=${poll.id})}">View</a></p>
+    </div>
+</div>
+
+</body>
+</html>

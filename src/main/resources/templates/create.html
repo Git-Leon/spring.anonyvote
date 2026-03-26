@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Create Poll — Anonyvote</title>
+    <style>body { font-family: Arial, sans-serif; margin: 30px; }</style>
+</head>
+<body>
+<h1>Create a Poll</h1>
+<form method="post" action="/create">
+    <div>
+        <label>Question:<br>
+            <input type="text" name="question" style="width: 400px;" required>
+        </label>
+    </div>
+    <div>
+        <label>Option 1: <input type="text" name="option" required></label>
+    </div>
+    <div>
+        <label>Option 2: <input type="text" name="option" required></label>
+    </div>
+    <div>
+        <label>Option 3: <input type="text" name="option"></label>
+    </div>
+    <div>
+        <label>Option 4: <input type="text" name="option"></label>
+    </div>
+    <div>
+        <label>Option 5: <input type="text" name="option"></label>
+    </div>
+    <div>
+        <label>Option 6: <input type="text" name="option"></label>
+    </div>
+    <div style="margin-top: 12px;">
+        <button type="submit">Create Poll</button>
+        <a href="/">Cancel</a>
+    </div>
+    <p style="font-size: 0.9em; color: #666">Note: Poll results are hidden for 24 hours after creation.</p>
+</form>
+</body>
+</html>

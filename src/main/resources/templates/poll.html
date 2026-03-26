@@ -1,0 +1,61 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title th:text="${poll.question}">Poll</title>
+    <style>body { font-family: Arial, sans-serif; margin: 30px; }</style>
+</head>
+<body>
+<h1 th:text="${poll.question}">Poll question</h1>
+
+<div th:if="${message}" style="padding:8px;background:#e6ffed;border:1px solid #b6f2c3;margin-bottom:12px;">
+    <span th:text="${message}"></span>
+</div>
+<div th:if="${error}" style="padding:8px;background:#ffecec;border:1px solid #f2b6b6;margin-bottom:12px;color:#900;">
+    <span th:text="${error}"></span>
+</div>
+
+<div th:if="${resultsVisible}">
+    <h3>Results (visible)</h3>
+    <div th:each="opt : ${poll.options}">
+        <div>
+            <strong th:text="${opt.text}"></strong>
+            - Votes: <span th:text="${counts[opt.id]} ?: 0"></span>
+            (<span th:text="${totalVotes > 0 ? ((counts[opt.id] ?: 0) * 100.0 / totalVotes) : 0}"></span>%)
+        </div>
+    </div>
+</div>
+
+<div th:if="${!resultsVisible}">
+    <p>Voting is open. Results will be visible after <span th:text="${poll.resultsVisibleAt}"></span>.</p>
+    <form th:action="@{/poll/{id}/vote(id=${poll.id})}" method="post">
+        <div th:each="opt : ${poll.options}">
+            <label>
+                <input type="radio" name="optionId" th:value="${opt.id}" required>
+                <span th:text="${opt.text}"></span>
+            </label>
+            <br/>
+        </div>
+        <div style="margin-top:12px;">
+            <button type="submit">Vote anonymously</button>
+        </div>
+    </form>
+</div>
+
+<p><a href="/">Back</a></p>
+
+<script>
+    // Ensure a fingerprint cookie exists so votes include it (simple duplicate protection)
+    (function(){
+        function getCookie(name){
+            const v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
+            return v ? v[2] : null;
+        }
+        if(!getCookie('ANV_VOTER')){
+            document.cookie = 'ANV_VOTER=' + (function(){return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0,v=c=='x'?r:(r&0x3|0x8);return v.toString(16);});})() + '; path=/; max-age=' + (60*60*24*365);
+        }
+    })();
+</script>
+
+</body>
+</html>
