@@ -77,9 +77,8 @@
 						<exclude>**/Configuration*.class</exclude>
 						<exclude>**/Configuration*</exclude>
 						<exclude>com/github/curriculeon/Configuration*</exclude>
-                                                <!-- Exclude model package (Person) -->
-                                                <exclude>com/github/curriculeon/model/Person*</exclude>
-                                                <exclude>com/github/curriculeon/model/**</exclude>
+												<!-- Exclude model package (Person) -->
+												<!-- REMOVED: temporarily excluded model package to keep coverage strict; tests now cover Person branches -->
 					</excludes>
 				</configuration>
 				<executions>
@@ -109,9 +108,8 @@
 								<exclude>**/Configuration*.class</exclude>
 								<exclude>**/Configuration*</exclude>
 								<exclude>com/github/curriculeon/Configuration*</exclude>
-                                                <!-- Exclude model package (Person) -->
-                                                <exclude>com/github/curriculeon/model/Person*</exclude>
-                                                <exclude>com/github/curriculeon/model/**</exclude>
+												<!-- Exclude model package (Person) -->
+												<!-- REMOVED: temporarily excluded model package to keep coverage strict; tests now cover Person branches -->
 							</excludes>
 						</configuration>
 					</execution>
@@ -142,8 +140,7 @@
 									     exercise in unit tests from the check step to avoid noisy failures. -->
 									<excludes>
 										<!-- Exclude the Person model and the entire model package if needed -->
-										<exclude>com/github/curriculeon/model/Person*</exclude>
-										<exclude>com/github/curriculeon/model/**</exclude>
+										<!-- REMOVED: temporarily excluded model package to keep coverage strict; tests now cover Person branches -->
 									</excludes>
 								</rule>
 							</rules>
