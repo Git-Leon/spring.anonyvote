@@ -69,4 +69,19 @@ public class PollControllerIntegrationTest {
         long votes = voteRepository.countByOption_Id(opt.getId());
         assertThat(votes).isGreaterThanOrEqualTo(1L);
     }
-}
+
+    @Test
+    public void createWithEmptyOptions_ignoresBlanksInRenderedPoll() throws Exception {
+        // create a poll with extra empty option parameters
+        mockMvc.perform(post("/create")
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .param("question", "Front-end blanks test?")
+                .param("option", "Mickey Mouse")
+                .param("option", "Donald Duck")
+                .param("option", "")
+                .param("option", "   ")
+                .param("option", "")
+        ).andExpect(status().is3xxRedirection());
+
+        // check repository has poll
+        List<Poll> polls = pollRepository.findAllByOrder
