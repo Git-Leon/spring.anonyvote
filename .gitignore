@@ -399,6 +399,12 @@ plugins/android.json
 plugins/ios.json
 www/
 
+# Local temporary artifacts produced by CI/debug runs
+tmp_artifact/
+tmp_artifact_publish/
+tmp_job_logs_*.zip
+jacoco-site.zip
+
 # Trash data
 $RECYCLE.BIN/
 .DS_Store
@@ -516,7 +522,8 @@ vendor/
 .LSOverride
 
 # Icon must end with two \r
-Icon
+Icon
+
 
 # Thumbnails
 ._*

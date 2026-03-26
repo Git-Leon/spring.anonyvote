@@ -33,25 +33,16 @@ We've also added a GitHub Actions workflow (`.github/workflows/ci.yml`) which ru
 the Maven `verify` lifecycle and uploads the JaCoCo XML as a build artifact for
 pull-requests and pushes to the `main`/`master` branches.
 
-## Status (placeholders)
+## Status
 
-You can add CI and Pages badges here after you push the repository to GitHub.
-Replace `<owner>` and `<repo>` with your GitHub account and repository name.
+CI and coverage badges for this repository:
 
-<!-- Replace <owner>/<repo> with your GitHub repo to enable these badges -->
-[![CI](https://github.com/<owner>/<repo>/actions/workflows/ci.yml/badge.svg)](https://github.com/<owner>/<repo>/actions/workflows/ci.yml) 
-[![JaCoCo report](https://github.com/<owner>/<repo>/actions/workflows/publish-jacoco.yml/badge.svg)](https://<owner>.github.io/<repo>/)
+[![CI](https://github.com/Git-Leon/spring.anonyvote/actions/workflows/ci.yml/badge.svg)](https://github.com/Git-Leon/spring.anonyvote/actions/workflows/ci.yml)
+[![JaCoCo report (Pages)](https://github.com/Git-Leon/spring.anonyvote/actions/workflows/publish-jacoco-pages.yml/badge.svg)](https://git-leon.github.io/spring.anonyvote/)
 
-```markdown
-[![CI](https://github.com/<owner>/<repo>/actions/workflows/ci.yml/badge.svg)](https://github.com/<owner>/<repo>/actions/workflows/ci.yml)
-```
-
-Pages (JaCoCo report) badge placeholder (the Pages site is available after the
-first successful deploy):
-
-```markdown
-[![JaCoCo report](https://github.com/<owner>/<repo>/actions/workflows/publish-jacoco.yml/badge.svg)](https://<owner>.github.io/<repo>/)
-```
+The JaCoCo Pages badge links to the published static HTML coverage report. If
+the Pages site is not yet available (HTTP 404 due to propagation), use the raw
+fallback link in the "JaCoCo coverage report (published)" section below.
 
 ## JaCoCo coverage report (published)
 
