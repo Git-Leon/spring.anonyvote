@@ -1,0 +1,74 @@
+name: PR JaCoCo Summary
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  jacoco-comment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 8
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '8'
+
+      - name: Run tests and generate JaCoCo
+        run: mvn -B verify
+
+      - name: Parse JaCoCo XML and set outputs
+        id: jacoco
+        run: |
+          python3 - <<'PY'
+          import xml.etree.ElementTree as ET, os
+          path='target/site/jacoco/jacoco.xml'
+          if not os.path.exists(path):
+              print('No jacoco.xml found')
+              with open(os.environ['GITHUB_OUTPUT'],'a') as fh:
+                  fh.write('line=0.00\n')
+                  fh.write('branch=0.00\n')
+              raise SystemExit(0)
+          tree=ET.parse(path)
+          root=tree.getroot()
+          # find report-level counters
+          line_missed=line_covered=0
+          branch_missed=branch_covered=0
+          for c in root.findall('.//counter'):
+              t=c.get('type')
+              if t=='LINE':
+                  line_missed=int(c.get('missed'))
+                  line_covered=int(c.get('covered'))
+              if t=='BRANCH':
+                  branch_missed=int(c.get('missed'))
+                  branch_covered=int(c.get('covered'))
+          def pct(missed,covered):
+              total=missed+covered
+              return (100.0*covered/total) if total>0 else 100.0
+          line_pct=pct(line_missed,line_covered)
+          branch_pct=pct(branch_missed,branch_covered)
+          with open(os.environ['GITHUB_OUTPUT'],'a') as fh:
+              fh.write(f'line={line_pct:.2f}\n')
+              fh.write(f'branch={branch_pct:.2f}\n')
+          print(f'Parsed jacoco: line={line_pct:.2f}, branch={branch_pct:.2f}')
+          PY
+
+      - name: Comment PR with coverage summary
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const line = core.getInput('line') || steps.jacoco.outputs.line || '0.00'
+            const branch = core.getInput('branch') || steps.jacoco.outputs.branch || '0.00'
+            const repoUrl = `https://${process.env.GITHUB_REPOSITORY_OWNER}.github.io/${context.repo.repo}/`;
+            const body = `JaCoCo coverage summary:\n- **Lines:** ${line}%\n- **Branches:** ${branch}%\n\nFull report (if available) may be published to the project's Pages site or available as a CI artifact.`;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body,
+            });
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
