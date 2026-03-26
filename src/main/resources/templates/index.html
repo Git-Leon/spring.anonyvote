@@ -18,8 +18,51 @@
     </header>
 
     <section class="controls">
-        <form class="inline-form" action="/create" method="get">
-            <button class="btn" type="submit">Create a Poll</button>
+        <button id="toggleCreateBtn" class="btn">Create a Poll</button>
+    </section>
+
+    <section id="create-poll-section" class="create" style="display:none; margin-top:16px;">
+        <h2>Create a Poll</h2>
+        <form id="createForm" method="post" action="/create" class="form-card">
+            <div>
+                <label>Question:<br>
+                    <input type="text" name="question" style="width: 400px;" required>
+                </label>
+            </div>
+            <div id="optionsContainer">
+                <div class="option-row">
+                    <label>Option 1: <input type="text" name="option" required></label>
+                    <button type="button" class="remove-btn" style="display:none;">Remove</button>
+                </div>
+                <div class="option-row">
+                    <label>Option 2: <input type="text" name="option" required></label>
+                    <button type="button" class="remove-btn" style="display:none;">Remove</button>
+                </div>
+                <div class="option-row">
+                    <label>Option 3: <input type="text" name="option"></label>
+                    <button type="button" class="remove-btn">Remove</button>
+                </div>
+                <div class="option-row">
+                    <label>Option 4: <input type="text" name="option"></label>
+                    <button type="button" class="remove-btn">Remove</button>
+                </div>
+                <div class="option-row">
+                    <label>Option 5: <input type="text" name="option"></label>
+                    <button type="button" class="remove-btn">Remove</button>
+                </div>
+                <div class="option-row">
+                    <label>Option 6: <input type="text" name="option"></label>
+                    <button type="button" class="remove-btn">Remove</button>
+                </div>
+            </div>
+            <div style="margin-top:8px;">
+                <button type="button" id="addOptionBtn">+ Add option</button>
+            </div>
+            <div style="margin-top: 12px;">
+                <button type="submit">Create Poll</button>
+                <a href="#" id="cancelCreate">Cancel</a>
+            </div>
+            <p style="font-size: 0.9em; color: #666">Note: Poll results are hidden for 24 hours after creation.</p>
         </form>
     </section>
 
@@ -41,7 +84,131 @@
 
     <footer class="site-footer">Generated demo UI — not for production use.</footer>
 </main>
+<script>
+    // Toggle visibility of embedded create poll section
+    (function () {
+        var toggleBtn = document.getElementById('toggleCreateBtn');
+        var section = document.getElementById('create-poll-section');
+        var cancel = document.getElementById('cancelCreate');
+        if (toggleBtn && section) {
+            toggleBtn.addEventListener('click', function () {
+                section.style.display = (section.style.display === 'none' || section.style.display === '') ? 'block' : 'none';
+                if (section.style.display === 'block') {
+                    // scroll into view for convenience
+                    section.scrollIntoView({behavior: 'smooth'});
+                }
+            });
+        }
+        if (cancel && section) {
+            cancel.addEventListener('click', function (e) {
+                e.preventDefault();
+                section.style.display = 'none';
+            });
+        }
 
+        // --- embed the create.html option-management logic here ---
+        var form = document.getElementById('createForm');
+        var optionsContainer = document.getElementById('optionsContainer');
+        var addBtn = document.getElementById('addOptionBtn');
+        var MAX = 6;
+        var MIN = 2;
+
+        function refreshRemoveButtons() {
+            var rows = optionsContainer.querySelectorAll('.option-row');
+            rows.forEach(function (row, idx) {
+                var btn = row.querySelector('.remove-btn');
+                if (btn) {
+                    if (idx < MIN) {
+                        btn.style.display = 'none';
+                    } else {
+                        btn.style.display = '';
+                    }
+                }
+            });
+            if (addBtn) addBtn.disabled = optionsContainer.querySelectorAll('.option-row').length >= MAX;
+        }
+
+        function createOptionRow() {
+            var div = document.createElement('div');
+            div.className = 'option-row';
+            var label = document.createElement('label');
+            var count = optionsContainer.querySelectorAll('.option-row').length + 1;
+            label.innerHTML = 'Option ' + count + ': ';
+            var input = document.createElement('input');
+            input.type = 'text';
+            input.name = 'option';
+            label.appendChild(input);
+            var remove = document.createElement('button');
+            remove.type = 'button';
+            remove.className = 'remove-btn';
+            remove.textContent = 'Remove';
+            remove.addEventListener('click', function () {
+                if (optionsContainer.querySelectorAll('.option-row').length > MIN) {
+                    div.parentNode.removeChild(div);
+                    refreshLabels();
+                    refreshRemoveButtons();
+                }
+            });
+            div.appendChild(label);
+            div.appendChild(remove);
+            return div;
+        }
+
+        function refreshLabels() {
+            var rows = optionsContainer.querySelectorAll('.option-row');
+            rows.forEach(function (row, idx) {
+                var lbl = row.querySelector('label');
+                if (lbl) {
+                    var input = row.querySelector('input[name="option"]');
+                    lbl.textContent = 'Option ' + (idx + 1) + ': ';
+                    if (input) lbl.appendChild(input);
+                }
+            });
+        }
+
+        // wire existing remove buttons
+        if (optionsContainer) {
+            optionsContainer.querySelectorAll('.remove-btn').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var row = btn.closest('.option-row');
+                    if (!row) return;
+                    if (optionsContainer.querySelectorAll('.option-row').length > MIN) {
+                        row.parentNode.removeChild(row);
+                        refreshLabels();
+                        refreshRemoveButtons();
+                    }
+                });
+            });
+        }
+
+        if (addBtn) {
+            addBtn.addEventListener('click', function () {
+                if (optionsContainer.querySelectorAll('.option-row').length >= MAX) return;
+                var newRow = createOptionRow();
+                optionsContainer.appendChild(newRow);
+                refreshLabels();
+                refreshRemoveButtons();
+            });
+        }
+
+        if (form) {
+            form.addEventListener('submit', function (e) {
+                var options = Array.prototype.slice.call(form.querySelectorAll('input[name="option"]'));
+                options.forEach(function (inp) {
+                    if (typeof inp.value === 'string') inp.value = inp.value.trim();
+                });
+                Array.prototype.slice.call(optionsContainer.querySelectorAll('.option-row')).forEach(function (row) {
+                    var inp = row.querySelector('input[name="option"]');
+                    if (!inp || inp.value === '') {
+                        row.parentNode.removeChild(row);
+                    }
+                });
+            });
+        }
+
+        // initial state
+        if (optionsContainer) refreshRemoveButtons();
+    })();
 </script>
 </body>
 </html>
