@@ -230,13 +230,43 @@
                         var newPolls = doc.querySelector('.polls');
                         var curPolls = document.querySelector('.polls');
                         if (newPolls && curPolls) {
-                            curPolls.innerHTML = newPolls.innerHTML;
-                            // show a brief success message
-                            var flash = document.getElementById('flash');
-                            if (flash) {
-                                flash.textContent = 'Poll created.';
-                                flash.style.display = 'block';
-                                setTimeout(function () { flash.style.display = 'none'; }, 3500);
+                            // Try to insert only the newly-created poll node instead of replacing
+                            // the entire polls section. This keeps other page state intact.
+                            try {
+                                var newContainer = newPolls.querySelector('div');
+                                var curContainer = curPolls.querySelector('div');
+                                if (newContainer && curContainer) {
+                                    var newPollEntry = newContainer.querySelector('.poll');
+                                    if (newPollEntry) {
+                                        // remove any "No polls yet" placeholder
+                                        Array.prototype.slice.call(curContainer.children).forEach(function (ch) {
+                                            if (!ch.classList || !ch.classList.contains('poll')) {
+                                                if (ch.textContent && ch.textContent.trim().toLowerCase().indexOf('no polls') !== -1) {
+                                                    ch.parentNode.removeChild(ch);
+                                                }
+                                            }
+                                        });
+                                        // prepend the new poll (clone to detach from parsed doc)
+                                        var clone = newPollEntry.cloneNode(true);
+                                        curContainer.insertBefore(clone, curContainer.firstChild);
+                                    } else {
+                                        // nothing to insert: fallback to full replace
+                                        curPolls.innerHTML = newPolls.innerHTML;
+                                    }
+                                } else {
+                                    // fallback: replace whole polls block
+                                    curPolls.innerHTML = newPolls.innerHTML;
+                                }
+                                // show a brief success message
+                                var flash = document.getElementById('flash');
+                                if (flash) {
+                                    flash.textContent = 'Poll created.';
+                                    flash.style.display = 'block';
+                                    setTimeout(function () { flash.style.display = 'none'; }, 3500);
+                                }
+                            } catch (err) {
+                                console.error('Partial update failed, falling back to full replace', err);
+                                curPolls.innerHTML = newPolls.innerHTML;
                             }
                         } else {
                             // fallback: reload the page
