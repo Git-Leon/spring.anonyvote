@@ -13,23 +13,34 @@
             <input type="text" name="question" style="width: 400px;" required>
         </label>
     </div>
-    <div>
-        <label>Option 1: <input type="text" name="option" required></label>
+    <div id="optionsContainer">
+        <div class="option-row">
+            <label>Option 1: <input type="text" name="option" required></label>
+            <button type="button" class="remove-btn" style="display:none;">Remove</button>
+        </div>
+        <div class="option-row">
+            <label>Option 2: <input type="text" name="option" required></label>
+            <button type="button" class="remove-btn" style="display:none;">Remove</button>
+        </div>
+        <div class="option-row">
+            <label>Option 3: <input type="text" name="option"></label>
+            <button type="button" class="remove-btn">Remove</button>
+        </div>
+        <div class="option-row">
+            <label>Option 4: <input type="text" name="option"></label>
+            <button type="button" class="remove-btn">Remove</button>
+        </div>
+        <div class="option-row">
+            <label>Option 5: <input type="text" name="option"></label>
+            <button type="button" class="remove-btn">Remove</button>
+        </div>
+        <div class="option-row">
+            <label>Option 6: <input type="text" name="option"></label>
+            <button type="button" class="remove-btn">Remove</button>
+        </div>
     </div>
-    <div>
-        <label>Option 2: <input type="text" name="option" required></label>
-    </div>
-    <div>
-        <label>Option 3: <input type="text" name="option"></label>
-    </div>
-    <div>
-        <label>Option 4: <input type="text" name="option"></label>
-    </div>
-    <div>
-        <label>Option 5: <input type="text" name="option"></label>
-    </div>
-    <div>
-        <label>Option 6: <input type="text" name="option"></label>
+    <div style="margin-top:8px;">
+        <button type="button" id="addOptionBtn">+ Add option</button>
     </div>
     <div style="margin-top: 12px;">
         <button type="submit">Create Poll</button>
@@ -38,22 +49,107 @@
     <p style="font-size: 0.9em; color: #666">Note: Poll results are hidden for 24 hours after creation.</p>
 </form>
 <script>
-    // Trim option inputs and remove any empty option blocks before submitting the form.
+    // Manage option rows and sanitize values before submit.
     (function () {
         var form = document.getElementById('createForm');
-        if (!form) return;
-        form.addEventListener('submit', function (e) {
-            var options = Array.prototype.slice.call(form.querySelectorAll('input[name="option"]'));
-            options.forEach(function (inp) {
-                // Trim value in-place
-                if (typeof inp.value === 'string') inp.value = inp.value.trim();
-                if (inp.value === '') {
-                    // remove the surrounding div so labels don't leave blank placeholders
-                    var container = inp.closest('div');
-                    if (container && container.parentNode) container.parentNode.removeChild(container);
+        var optionsContainer = document.getElementById('optionsContainer');
+        var addBtn = document.getElementById('addOptionBtn');
+        var MAX = 6;
+        var MIN = 2;
+
+        function refreshRemoveButtons() {
+            var rows = optionsContainer.querySelectorAll('.option-row');
+            rows.forEach(function (row, idx) {
+                var btn = row.querySelector('.remove-btn');
+                // hide remove for first MIN rows
+                if (idx < MIN) {
+                    btn.style.display = 'none';
+                } else {
+                    btn.style.display = '';
+                }
+            });
+            addBtn.disabled = optionsContainer.querySelectorAll('.option-row').length >= MAX;
+        }
+
+        function createOptionRow() {
+            var div = document.createElement('div');
+            div.className = 'option-row';
+            var label = document.createElement('label');
+            var count = optionsContainer.querySelectorAll('.option-row').length + 1;
+            label.innerHTML = 'Option ' + count + ': ';
+            var input = document.createElement('input');
+            input.type = 'text';
+            input.name = 'option';
+            label.appendChild(input);
+            var remove = document.createElement('button');
+            remove.type = 'button';
+            remove.className = 'remove-btn';
+            remove.textContent = 'Remove';
+            remove.addEventListener('click', function () {
+                if (optionsContainer.querySelectorAll('.option-row').length > MIN) {
+                    div.parentNode.removeChild(div);
+                    refreshLabels();
+                    refreshRemoveButtons();
+                }
+            });
+            div.appendChild(label);
+            div.appendChild(remove);
+            return div;
+        }
+
+        function refreshLabels() {
+            var rows = optionsContainer.querySelectorAll('.option-row');
+            rows.forEach(function (row, idx) {
+                var lbl = row.querySelector('label');
+                if (lbl) {
+                    // replace label text but keep input
+                    var input = row.querySelector('input[name="option"]');
+                    lbl.textContent = 'Option ' + (idx + 1) + ': ';
+                    if (input) lbl.appendChild(input);
+                }
+            });
+        }
+
+        // wire existing remove buttons
+        optionsContainer.querySelectorAll('.remove-btn').forEach(function (btn) {
+            btn.addEventListener('click', function (e) {
+                var row = btn.closest('.option-row');
+                if (!row) return;
+                if (optionsContainer.querySelectorAll('.option-row').length > MIN) {
+                    row.parentNode.removeChild(row);
+                    refreshLabels();
+                    refreshRemoveButtons();
                 }
             });
         });
+
+        addBtn.addEventListener('click', function () {
+            if (optionsContainer.querySelectorAll('.option-row').length >= MAX) return;
+            var newRow = createOptionRow();
+            optionsContainer.appendChild(newRow);
+            refreshLabels();
+            refreshRemoveButtons();
+        });
+
+        // Trim option inputs and remove any empty option blocks before submitting the form.
+        if (form) {
+            form.addEventListener('submit', function (e) {
+                var options = Array.prototype.slice.call(form.querySelectorAll('input[name="option"]'));
+                options.forEach(function (inp) {
+                    if (typeof inp.value === 'string') inp.value = inp.value.trim();
+                });
+                // after trimming, remove empty option rows so server receives only non-empty values
+                Array.prototype.slice.call(optionsContainer.querySelectorAll('.option-row')).forEach(function (row) {
+                    var inp = row.querySelector('input[name="option"]');
+                    if (!inp || inp.value === '') {
+                        row.parentNode.removeChild(row);
+                    }
+                });
+            });
+        }
+
+        // initial state
+        refreshRemoveButtons();
     })();
 </script>
 </body>
