@@ -3,6 +3,7 @@ name: Publish JaCoCo Report to Pages
 on:
   push:
     branches: [ main, master ]
+  workflow_dispatch: {}
 
 jobs:
   build-and-upload:
@@ -20,6 +21,14 @@ jobs:
         with:
           distribution: temurin
           java-version: '8'
+
+      - name: Debug job context
+        run: |
+          echo "Runner OS: $RUNNER_OS"
+          echo "Repository: $GITHUB_REPOSITORY"
+          echo "Actor: $GITHUB_ACTOR"
+          echo "Ref: $GITHUB_REF"
+          env | sort
 
       - name: Build and run tests (generate JaCoCo)
         run: mvn -B verify
