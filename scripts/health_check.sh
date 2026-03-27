@@ -4,7 +4,10 @@ set -euo pipefail
 # Usage: ./scripts/health_check.sh [URL]
 # If URL is not provided, it will use $DEPLOY_URL or default to http://localhost:8080/
 
-OUT_DIR="logs"
+BASE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+# Write generated artifacts under target/monitor-logs-<timestamp>
+TIMESTAMP=$(date -u +"%Y%m%dT%H%M%SZ")
+OUT_DIR="$BASE_DIR/target/monitor-logs-$TIMESTAMP"
 mkdir -p "$OUT_DIR"
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 URL="${1:-${DEPLOY_URL:-http://localhost:8080/}}"

@@ -6,8 +6,8 @@ permissions:
   issues: write
 
 on:
-  schedule:
-    - cron: '*/15 * * * *' # every 15 minutes — change as needed
+  # Temporarily disabled scheduled runs to avoid repeated failures while TLS is being fixed.
+  # Re-enable the schedule (cron) after DEPLOY_URL and hosting TLS are verified.
   workflow_dispatch:
     inputs:
       url:
@@ -52,16 +52,28 @@ jobs:
           fi
 
           echo "Health check exit code: $RC"
-          mkdir -p logs
-          echo "$RC" > logs/exit_code.txt
-          echo "$URL" > logs/url.txt
-          ls -la logs || true
+          # Find the most recent target/monitor-logs-* directory produced by the script
+          LATEST=$(ls -td target/monitor-logs-* 2>/dev/null | head -n1 || true)
+          if [ -z "$LATEST" ]; then
+            # Fallback to logs/ for compatibility
+            mkdir -p logs
+            echo "$RC" > logs/exit_code.txt
+            echo "$URL" > logs/url.txt
+            echo "Using fallback logs/ directory"
+            ls -la logs || true
+            UPLOAD_PATH=logs/**
+          else
+            echo "$RC" > "$LATEST/exit_code.txt"
+            echo "$URL" > "$LATEST/url.txt"
+            ls -la "$LATEST" || true
+            UPLOAD_PATH="$LATEST/**"
+          fi
 
       - name: Upload logs artifact
         uses: actions/upload-artifact@v4
         with:
           name: monitor-logs-${{ github.run_id }}
-          path: logs/**
+          path: ${{ env.UPLOAD_PATH || 'logs/**' }}
 
       - name: Monitor issues with pending threshold
         uses: actions/github-script@v6
