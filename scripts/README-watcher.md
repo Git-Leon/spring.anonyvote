@@ -18,19 +18,20 @@ manually re-launching it after transient failures.
 
 How to run
 ----------
-Start the wrapper in the background (POSIX shell):
+
+Start the wrapper in the background (POSIX shell). The wrapper now writes runtime files into `target/`:
 
 ```bash
-nohup bash scripts/watch_issue_and_rerun-wrapper.sh >> .monitor-watcher.log 2>&1 &
-echo $! > .monitor-watcher.pid
+nohup bash scripts/watch_issue_and_rerun-wrapper.sh >> target/monitor-watcher.log 2>&1 &
+echo $! > target/monitor-watcher.pid
 ```
 
-Check status by inspecting the PID and log:
+Check status by inspecting the PID and log under `target/`:
 
 ```bash
-cat .monitor-watcher.pid
-ps -p $(cat .monitor-watcher.pid) -f || true
-tail -n 200 .monitor-watcher.log
+cat target/monitor-watcher.pid
+ps -p $(cat target/monitor-watcher.pid) -f || true
+tail -n 200 target/monitor-watcher.log
 ```
 
 Notes and maintenance

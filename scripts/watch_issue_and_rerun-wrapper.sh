@@ -8,8 +8,11 @@ set -euo pipefail
 
 BASE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 SCRIPT="$BASE_DIR/scripts/watch_issue_and_rerun.sh"
-LOG="$BASE_DIR/.monitor-watcher.log"
-PIDFILE="$BASE_DIR/.monitor-watcher.pid"
+# Place runtime artifacts under target/ per repository policy
+TARGET_DIR="$BASE_DIR/target"
+mkdir -p "$TARGET_DIR"
+LOG="$TARGET_DIR/monitor-watcher.log"
+PIDFILE="$TARGET_DIR/monitor-watcher.pid"
 MAX_RESTARTS=6
 BACKOFF_BASE=5
 ROTATE_COUNT=3
