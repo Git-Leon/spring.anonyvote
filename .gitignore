@@ -1202,6 +1202,9 @@ docs/LOCAL_TLS_DEBUG.txt
 bash.exe.stackdump
 "LICENSE copy"
 
+# Local diagnostics (kept locally, out of source control)
+local-diagnostics/
+
 # User-specific files
 *.rsuser
 *.userosscache
