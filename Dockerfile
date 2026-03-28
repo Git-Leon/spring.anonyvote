@@ -1,5 +1,5 @@
 # Build Stage
-FROM amazoncorretto:17-alpine as build
+FROM amazoncorretto:8-alpine as build
 WORKDIR /workspace/app
 
 # Install Maven in the build stage
@@ -13,7 +13,7 @@ COPY src/ src/
 RUN mvn package -DskipTests  # Build the JAR without running tests
 
 # Final Stage (Only copy the built JAR to the runtime image)
-FROM amazoncorretto:17-alpine
+FROM amazoncorretto:8-alpine
 
 WORKDIR /app
 
