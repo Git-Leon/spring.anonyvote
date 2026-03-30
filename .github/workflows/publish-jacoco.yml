@@ -1,8 +1,7 @@
 name: Publish JaCoCo Report to Pages
 
 on:
-  push:
-    branches: [ main, master ]
+  # Temporarily disable automatic publishing on push; use manual dispatch instead.
   workflow_dispatch: {}
 
 jobs:

@@ -6,16 +6,18 @@ permissions:
   issues: write
 
 on:
-  # Temporarily disabled scheduled runs to avoid repeated failures while TLS is being fixed.
-  # Re-enable the schedule (cron) after DEPLOY_URL and hosting TLS are verified.
+  # Run every 10 minutes and still allow manual dispatch. Use the workflow input first,
+  # then the DEPLOY_URL secret as a fallback.
+  schedule:
+    - cron: '*/10 * * * *'
   workflow_dispatch:
     inputs:
       url:
         description: 'Optional URL to check. If not provided, uses the DEPLOY_URL secret.'
         required: false
-        # Default to the public /health endpoint for the deployed app. Override when manually
+        # Default to the public root endpoint for the deployed app. Override when manually
         # dispatching if you want to check a different URL.
-        default: 'https://spring.anonyvote.onrender.com/health'
+        default: 'https://spring.anonyvote.onrender.com/'
 
 jobs:
   monitor:

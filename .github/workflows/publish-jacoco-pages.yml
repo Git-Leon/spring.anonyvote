@@ -4,10 +4,8 @@ name: Publish JaCoCo site to GitHub Pages
 # HTML to GitHub Pages using the official Pages actions.
 
 on:
+  # Disable automatic publish-to-pages on push until maintainers re-enable.
   workflow_dispatch: {}
-  push:
-    branches:
-      - master
 
 permissions:
   contents: write
