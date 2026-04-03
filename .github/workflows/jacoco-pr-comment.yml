@@ -1,7 +1,9 @@
 name: PR JaCoCo Summary
 
 on:
-  # Temporarily disable automatic PR comments to avoid CI usage; run manually instead.
+  pull_request:
+    types: [opened, synchronize, reopened]
+  # Keep manual dispatch available
   workflow_dispatch: {}
 
 jobs:

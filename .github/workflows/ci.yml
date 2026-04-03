@@ -1,8 +1,11 @@
 name: CI
 
 on:
-  # Temporarily disabled automatic CI runs to preserve Actions minutes.
-  # Re-enable push/pull_request triggers after review.
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  # Keep manual dispatch available
   workflow_dispatch: {}
 
 jobs:
