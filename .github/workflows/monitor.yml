@@ -8,8 +8,15 @@ permissions:
 on:
   # Run every 10 minutes and still allow manual dispatch. Use the workflow input first,
   # then the DEPLOY_URL secret as a fallback.
+  # Schedule entries below run on a 10-minute cadence only during the allowed
+  # daily window (10:30 - 19:30). Note: GitHub cron uses UTC.
   schedule:
-    - cron: '*/10 * * * *'
+    # 10:30,10:40,10:50 UTC
+    - cron: '30,40,50 10 * * *'
+    # every 10 minutes from 11:00 through 18:59 UTC
+    - cron: '*/10 11-18 * * *'
+    # 19:00,19:10,19:20,19:30 UTC
+    - cron: '0,10,20,30 19 * * *'
   workflow_dispatch:
     inputs:
       url:
@@ -21,8 +28,49 @@ on:
 
 jobs:
   monitor:
+    # Allowed window configuration (HH:MM, timezone name). These can be adjusted
+    # by maintainers; default timezone is UTC. If you'd like a different timezone,
+    # change ALLOWED_TZ to an IANA timezone (for example, America/New_York).
+    env:
+      ALLOWED_START: '10:30'
+      ALLOWED_END: '19:30'
+      ALLOWED_TZ: 'UTC'
     runs-on: ubuntu-latest
     steps:
+      - name: Enforce allowed run window
+        run: |
+          set -euo pipefail
+          # Parse times (HH:MM) into minutes since midnight
+          to_minutes() {
+            IFS=':' read -r hh mm <<< "$1"
+            echo $((10#$hh * 60 + 10#$mm))
+          }
+
+          NOW_TZ="$ALLOWED_TZ" date +'%Y-%m-%d %H:%M' >/tmp/now.txt 2>/dev/null || true
+          NOW=$(TZ="$ALLOWED_TZ" date +'%H:%M')
+          if [ -z "$NOW" ]; then
+            echo "Could not determine current time in timezone $ALLOWED_TZ; proceeding with run."
+            exit 0
+          fi
+          START_MIN=$(to_minutes "$ALLOWED_START")
+          END_MIN=$(to_minutes "$ALLOWED_END")
+          NOW_MIN=$(to_minutes "$NOW")
+
+          # Normal (non-wrap) window: start < end
+          if [ $START_MIN -le $END_MIN ]; then
+            if [ $NOW_MIN -lt $START_MIN ] || [ $NOW_MIN -gt $END_MIN ]; then
+              echo "Current time $NOW ($ALLOWED_TZ) is outside allowed window ${ALLOWED_START}-${ALLOWED_END} — exiting successfully.";
+              exit 0
+            fi
+          else
+            # Window wraps midnight (not expected here, but handle generically)
+            if [ $NOW_MIN -gt $END_MIN ] && [ $NOW_MIN -lt $START_MIN ]; then
+              echo "Current time $NOW ($ALLOWED_TZ) is outside allowed wrap window ${ALLOWED_START}-${ALLOWED_END} — exiting successfully.";
+              exit 0
+            fi
+          fi
+          echo "Current time $NOW ($ALLOWED_TZ) is within allowed window ${ALLOWED_START}-${ALLOWED_END}; continuing."
+
       - name: Checkout
         uses: actions/checkout@v4
 
